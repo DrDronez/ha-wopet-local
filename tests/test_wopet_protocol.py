@@ -52,3 +52,9 @@ def test_verbose_protocol_logging_uses_stderr() -> None:
     protocol = _load_protocol_module()
     source = inspect.getsource(protocol.TUTKDirectSession._vlog)
     assert "file=sys.stderr" in source
+
+
+def test_wopet_wrapper_uses_go2rtc_native_hevc_input() -> None:
+    """Avoid gating Wopet video on the Cubo-specific MPEG-TS clean-IDR path."""
+    source = (ROOT / "wopet_bridge/wopet/wopet_stream.py").read_text(encoding="utf-8")
+    assert 'os.environ["CUBOAI_OUTPUT_FORMAT"] = "annexb"' in source
