@@ -27,7 +27,7 @@ submitted to HACS's default catalog during alpha testing.
 
    - **Bridge host:** the IP address or resolvable hostname of your Home
      Assistant host;
-   - **RTSP port:** `8554` unless changed in the app network settings;
+   - **RTSP port:** the port selected in the bridge configuration (`8554` by default);
    - **Stream name:** `wopet` unless changed in the bridge configuration;
    - **Camera name:** the friendly name to display in Home Assistant.
 
@@ -44,4 +44,3 @@ integration.
 
 Remove the Wopet Local integration first, then uninstall the bridge app. HACS
 and the Home Assistant App Store repository entries may be removed afterward.
-

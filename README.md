@@ -50,8 +50,8 @@ the alpha period.
 2. Add `https://github.com/DrDronez/ha-wopet-local` as type **Integration**.
 3. Search for **Wopet Local**, install it, and restart Home Assistant.
 4. Open **Settings → Devices & services → Add integration → Wopet Local**.
-5. Enter the hostname or IP address of your Home Assistant host, RTSP port
-   `8554`, and stream name `wopet`.
+5. Enter the hostname or IP address of your Home Assistant host, the RTSP port
+   selected in the bridge configuration (`8554` by default), and stream name `wopet`.
 
 See [HACS setup](docs/HACS_SETUP.md) for screenshots-free, step-by-step details.
 

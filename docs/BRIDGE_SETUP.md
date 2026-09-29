@@ -29,6 +29,7 @@ TUTK/Kalay HEVC stream into RTSP using go2rtc.
    | `device_username` | Camera viewer username | Enter your own value |
    | `device_password` | Camera viewer password | Enter your own value |
    | `stream_name` | RTSP path name | `wopet` |
+   | `rtsp_port` | Unused TCP port on the Home Assistant host | `8554` |
    | `log_level` | Bridge logging detail | `info` |
 
 5. Save, start the app, and enable **Start on boot** and **Watchdog**.
@@ -36,10 +37,11 @@ TUTK/Kalay HEVC stream into RTSP using go2rtc.
 The RTSP endpoint is:
 
 ```text
-rtsp://HOME_ASSISTANT_HOST:8554/wopet
+rtsp://HOME_ASSISTANT_HOST:RTSP_PORT/wopet
 ```
 
-Replace `HOME_ASSISTANT_HOST` and the stream name if you changed it.
+Replace `HOME_ASSISTANT_HOST`, `RTSP_PORT`, and the stream name with the values
+used in your installation.
 
 ## Getting device credentials
 
@@ -74,11 +76,13 @@ you own or are explicitly authorized to test.
 
 ## Network notes
 
-- UDP from the bridge container to the camera must be permitted.
-- TCP port `8554` is published by the app for RTSP clients.
+- UDP from the Home Assistant host to the camera must be permitted. The app uses
+  host networking because the TUTK/Kalay session handshake does not survive
+  container NAT.
+- The configured RTSP TCP port must be unused on the Home Assistant host.
 - TCP port `1984` exposes the go2rtc status page on the Home Assistant host for
   local diagnostics. Do not forward either port to the internet.
-- No host networking or privileged container access is required.
+- Privileged container access is not required.
 
 ## Troubleshooting
 

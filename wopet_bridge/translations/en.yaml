@@ -14,9 +14,9 @@ configuration:
   stream_name:
     name: Stream name
     description: RTSP path used by go2rtc.
+  rtsp_port:
+    name: RTSP port
+    description: Host port for the RTSP stream. Choose an unused TCP port.
   log_level:
     name: Log level
     description: Use debug only while troubleshooting; network details may appear.
-network:
-  8554/tcp: RTSP stream
-
