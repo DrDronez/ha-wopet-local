@@ -1,0 +1,34 @@
+#!/usr/bin/with-contenv bashio
+set -euo pipefail
+
+camera_ip="$(bashio::config 'camera_ip')"
+device_uid="$(bashio::config 'device_uid')"
+device_username="$(bashio::config 'device_username')"
+device_password="$(bashio::config 'device_password')"
+stream_name="$(bashio::config 'stream_name')"
+
+if [[ -z "${camera_ip}" || -z "${device_uid}" || -z "${device_username}" || -z "${device_password}" ]]; then
+    bashio::log.fatal "camera_ip, device_uid, device_username, and device_password are required"
+    exit 1
+fi
+
+if [[ ! "${stream_name}" =~ ^[A-Za-z0-9_-]+$ ]]; then
+    bashio::log.fatal "stream_name may contain only letters, numbers, underscores, and hyphens"
+    exit 1
+fi
+
+cat > /data/go2rtc.yaml <<EOF
+api:
+  listen: ":1984"
+rtsp:
+  listen: ":8554"
+streams:
+  ${stream_name}:
+    - "exec:python3 /app/wopet/wopet_stream.py#killsignal=SIGTERM"
+EOF
+
+export WOPET_OPTIONS_FILE=/data/options.json
+bashio::log.info "Starting local bridge for stream '${stream_name}'"
+bashio::log.info "RTSP is available on port 8554; credentials are intentionally omitted from logs"
+exec /usr/local/bin/go2rtc -config /data/go2rtc.yaml
+

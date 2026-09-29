@@ -1,0 +1,35 @@
+name: Wopet Local Bridge
+version: 0.1.0-alpha.1
+slug: wopet_local_bridge
+description: Local TUTK/Kalay to RTSP bridge for supported Wopet cameras
+url: https://github.com/DrDronez/ha-wopet-local
+arch:
+  - amd64
+startup: services
+boot: auto
+init: false
+stage: experimental
+ingress: true
+ingress_port: 1984
+panel_icon: mdi:cctv
+panel_title: Wopet Local
+ports:
+  8554/tcp: 8554
+ports_description:
+  8554/tcp: RTSP stream
+watchdog: tcp://[HOST]:8554
+options:
+  camera_ip: ""
+  device_uid: ""
+  device_username: ""
+  device_password: ""
+  stream_name: wopet
+  log_level: info
+schema:
+  camera_ip: str
+  device_uid: password
+  device_username: password
+  device_password: password
+  stream_name: match(^[A-Za-z0-9_-]+$)
+  log_level: list(debug|info|warning|error)
+

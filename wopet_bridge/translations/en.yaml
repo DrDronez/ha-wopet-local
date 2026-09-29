@@ -1,0 +1,22 @@
+configuration:
+  camera_ip:
+    name: Camera IP address
+    description: Reserved LAN IP address of the Wopet camera.
+  device_uid:
+    name: Device UID
+    description: TUTK/Kalay device identifier for your camera.
+  device_username:
+    name: Device username
+    description: Camera viewer username, not your Wopet email address.
+  device_password:
+    name: Device password
+    description: Camera viewer password, not your Wopet account password.
+  stream_name:
+    name: Stream name
+    description: RTSP path used by go2rtc.
+  log_level:
+    name: Log level
+    description: Use debug only while troubleshooting; network details may appear.
+network:
+  8554/tcp: RTSP stream
+

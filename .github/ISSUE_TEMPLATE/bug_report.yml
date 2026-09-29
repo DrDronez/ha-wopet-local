@@ -1,0 +1,43 @@
+name: Bug report
+description: Report a reproducible Wopet Local problem
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Never attach packet captures, app configuration, device credentials,
+        Home Assistant backups, or unredacted logs.
+  - type: input
+    id: model
+    attributes:
+      label: Camera model and firmware
+      placeholder: D100 / 40.23.6.5
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Wopet Local version
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy confirmation
+      options:
+        - label: I removed credentials, device identifiers, captures, and personal data.
+          required: true
+

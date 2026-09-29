@@ -1,0 +1,23 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Wopet Local Bridge",
+        "description": "Install and start the Wopet Local Bridge app first. Camera credentials remain in the app configuration.",
+        "data": {
+          "name": "Camera name",
+          "host": "Bridge host",
+          "rtsp_port": "RTSP port",
+          "stream_name": "Stream name"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to the bridge RTSP port. Confirm the app is running and the host and port are correct."
+    },
+    "abort": {
+      "already_configured": "This bridge stream is already configured."
+    }
+  }
+}
+

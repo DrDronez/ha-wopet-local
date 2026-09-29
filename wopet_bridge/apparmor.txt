@@ -1,0 +1,28 @@
+#include <tunables/global>
+
+profile wopet_local_bridge flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+
+  file,
+  signal (send) set=(kill,term,int,hup,cont),
+  network inet stream,
+  network inet dgram,
+  network inet6 stream,
+  network inet6 dgram,
+
+  /init ix,
+  /bin/** ix,
+  /usr/bin/** ix,
+  /usr/local/bin/go2rtc ix,
+  /run/{s6,s6-rc*,service}/** ix,
+  /package/** ix,
+  /command/** ix,
+  /etc/services.d/** rwix,
+  /etc/cont-init.d/** rwix,
+  /etc/cont-finish.d/** rwix,
+  /usr/lib/bashio/** ix,
+
+  /run/{,**} rwk,
+  /tmp/** rwk,
+  /data/** rw,
+}
