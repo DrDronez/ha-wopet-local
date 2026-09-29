@@ -5,8 +5,15 @@ from __future__ import annotations
 
 import json
 import os
+import signal
+import subprocess
 import sys
+import time
 from pathlib import Path
+
+INITIAL_RETRY_DELAY = 30
+MAX_RETRY_DELAY = 300
+HEALTHY_RUN_SECONDS = 60
 
 
 def _required_string(options: dict[str, object], name: str) -> str:
@@ -14,6 +21,12 @@ def _required_string(options: dict[str, object], name: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"Required app option is missing: {name}")
     return value.strip()
+
+
+def _retry_delay(consecutive_failures: int) -> int:
+    """Return a camera-friendly exponential reconnect delay."""
+    exponent = max(0, consecutive_failures - 1)
+    return min(INITIAL_RETRY_DELAY * (2**exponent), MAX_RETRY_DELAY)
 
 
 def main() -> None:
@@ -33,10 +46,44 @@ def main() -> None:
     )
 
     vendor = Path(__file__).parents[1] / "vendor" / "cuboai_tutk"
-    sys.path.insert(0, str(vendor))
-    from cuboai_stream_video import main as stream_main
+    streamer = vendor / "cuboai_stream_video.py"
+    stopping = False
+    child: subprocess.Popen[bytes] | None = None
 
-    stream_main()
+    def stop(_signum: int, _frame: object) -> None:
+        nonlocal stopping
+        stopping = True
+        if child is not None and child.poll() is None:
+            child.terminate()
+
+    signal.signal(signal.SIGTERM, stop)
+    signal.signal(signal.SIGINT, stop)
+
+    consecutive_failures = 0
+    while not stopping:
+        started = time.monotonic()
+        child = subprocess.Popen([sys.executable, str(streamer)], env=os.environ.copy())
+        return_code = child.wait()
+        runtime = time.monotonic() - started
+        child = None
+
+        if stopping:
+            return
+
+        if runtime >= HEALTHY_RUN_SECONDS:
+            consecutive_failures = 0
+        consecutive_failures += 1
+        delay = _retry_delay(consecutive_failures)
+        print(
+            "Wopet stream process ended "
+            f"(exit {return_code}, ran {runtime:.1f}s); retrying in {delay}s",
+            file=sys.stderr,
+            flush=True,
+        )
+
+        deadline = time.monotonic() + delay
+        while not stopping and time.monotonic() < deadline:
+            time.sleep(min(0.5, deadline - time.monotonic()))
 
 
 if __name__ == "__main__":

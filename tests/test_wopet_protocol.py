@@ -58,3 +58,25 @@ def test_wopet_wrapper_uses_go2rtc_native_hevc_input() -> None:
     """Avoid gating Wopet video on the Cubo-specific MPEG-TS clean-IDR path."""
     source = (ROOT / "wopet_bridge/wopet/wopet_stream.py").read_text(encoding="utf-8")
     assert 'os.environ["CUBOAI_OUTPUT_FORMAT"] = "annexb"' in source
+
+
+def test_wopet_wrapper_supervises_the_stream_with_bounded_backoff() -> None:
+    """A failed camera handshake must not become a go2rtc respawn storm."""
+    wrapper_path = ROOT / "wopet_bridge/wopet/wopet_stream.py"
+    spec = importlib.util.spec_from_file_location("wopet_stream_wrapper", wrapper_path)
+    assert spec is not None and spec.loader is not None
+    wrapper = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(wrapper)
+
+    assert [wrapper._retry_delay(attempt) for attempt in range(1, 7)] == [
+        30,
+        60,
+        120,
+        240,
+        300,
+        300,
+    ]
+
+    source = inspect.getsource(wrapper.main)
+    assert "subprocess.Popen" in source
+    assert "child.terminate()" in source
