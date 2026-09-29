@@ -1233,6 +1233,37 @@ def build_x2043(av_wire: bytes) -> bytes:
     return xor_frame(bytes(p))
 
 
+# Wopet firmware 40.23.6.5 uses the same 0x2043 exchange, but its request is
+# tied to both the LAN-search ACK and the first AV connect.  A phone capture
+# shows the exact order ACK -> 0x2043 -> ch0 -> ch1 -> grant.  In particular,
+# [16:32] is copied from xor_frame(ack_wire), while [32:37] is copied from the
+# first AV connect.  Keep this separate from build_x2043() so the vendored Cubo
+# behavior remains byte-for-byte unchanged unless the Wopet wrapper opts in.
+_WOPET_X2043_CONST = bytes.fromhex(
+    "20431020000000001040a02140020002"
+    "00000000000000000000000000000000"  # [16:32] patched from LAN ACK
+    "0000000000010000d302131378403313"  # [32:37] + session fields patched below
+    "0b5fcde3"
+)
+
+
+def build_wopet_x2043(ack_wire: bytes, av_wire: bytes) -> bytes:
+    """Build Wopet's 52-byte pre-grant session-registration request."""
+    ackd = xor_frame(ack_wire)
+    avd = xor_frame(av_wire)
+    if len(ackd) < 32 or len(avd) < 32:
+        raise ValueError("Wopet 0x2043 requires a full LAN ACK and AV connect")
+
+    p = bytearray(_WOPET_X2043_CONST)
+    p[16:32] = ackd[16:32]
+    p[32:37] = avd[16:21]
+    p[40] = avd[24] | 0x13
+    p[44] = avd[28]
+    p[45] = avd[29] | 0x40
+    p[47] = avd[31]
+    return xor_frame(bytes(p))
+
+
 # ── AV / IOCTL data frames (post-connect) ───────────────────────────────────
 # Once the session is granted, avSendIOCtrl rides the IOTC LAN *data channel*
 # (IOTC packet type 0x0407 client->cam, 0x0408 cam->client). Each frame is the
@@ -2305,9 +2336,16 @@ class TUTKDirectSession:
                                f"[29]=0x{0x20 if odd else 0x00:02x}  "
                                f"({'ARMING path' if odd else 'non-arming'})")
 
-            # 3+4. ACK then the pre-grant channels (~8ms gap, as native does).
+            # 3+4. ACK then the pre-grant channels. Wopet inserts a 0x2043
+            # session-registration request between them; the wrapper opts in via
+            # CUBOAI_WOPET_X2043 so the original Cubo protocol remains unchanged.
             s.sendto(ack, cam)
-            time.sleep(0.008)
+            if os.environ.get("CUBOAI_WOPET_X2043"):
+                time.sleep(0.013)
+                s.sendto(build_wopet_x2043(ack, avc[pre[0]]), cam)
+                time.sleep(0.005)
+            else:
+                time.sleep(0.008)
             for c in pre:
                 s.sendto(avc[c], cam)
             # S68 diagnostic, TESTED-NEGATIVE (env-gated, default OFF -> wire
@@ -2317,7 +2355,9 @@ class TUTKDirectSession:
             if os.environ.get('CUBOAI_INJECT_LANQUERY'):
                 s.sendto(build_lan_query(self.uid, R), cam)
                 self._vlog("[connect] S68: injected IOTC 0x0402 LAN device-query")
-            self._vlog(f"[connect] sent: ACK + {' + '.join('ch%d' % c for c in pre)}"
+            registration = " + 0x2043" if os.environ.get("CUBOAI_WOPET_X2043") else ""
+            self._vlog(f"[connect] sent: ACK{registration} + "
+                       f"{' + '.join('ch%d' % c for c in pre)}"
                        f"  ; waiting for 0x2041 grant...")
 
             # 5. wait for the 88-byte 0x2041 success.

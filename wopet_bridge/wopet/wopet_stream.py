@@ -26,6 +26,7 @@ def main() -> None:
     os.environ["CUBOAI_ACCOUNT"] = _required_string(options, "device_username")
     os.environ["CUBOAI_PASSWORD"] = _required_string(options, "device_password")
     os.environ["CUBOAI_MUX_AUDIO"] = "0"
+    os.environ["CUBOAI_WOPET_X2043"] = "1"
     os.environ["CUBOAI_VERBOSE"] = (
         "1" if str(options.get("log_level", "info")).lower() == "debug" else "0"
     )
