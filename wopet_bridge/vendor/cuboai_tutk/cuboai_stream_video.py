@@ -508,13 +508,13 @@ def main() -> None:
             waiting_for_keyframe = True
             for frame_type, data in sess.av_frames():
                 if frame_type == 'video':
-                    if not is_safe_hevc_annexb_au(data):
-                        waiting_for_keyframe = True
-                        continue
                     if waiting_for_keyframe:
                         if not is_annexb_keyframe(data):
                             continue
                         waiting_for_keyframe = False
+                    elif not is_safe_hevc_annexb_au(data):
+                        waiting_for_keyframe = True
+                        continue
                     _emit(data)
     except (BrokenPipeError, KeyboardInterrupt):
         # go2rtc closed the pipe (stream stopped) — clean exit

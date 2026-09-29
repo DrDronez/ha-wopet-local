@@ -24,8 +24,9 @@ go2rtc media pipe open, and retries after 30 seconds if the session still ends.
 Repeated failures back off to a maximum of five minutes so the camera is not
 trapped in its rapid-connection rate limit.
 
-Malformed or incomplete HEVC access units are discarded. Playback resynchronizes
-at the next keyframe instead of allowing a damaged NAL unit to restart go2rtc.
+After the opening VPS/keyframe establishes the stream, malformed or incomplete
+HEVC access units are discarded. Playback resynchronizes at the next keyframe
+instead of allowing a damaged NAL unit to restart go2rtc.
 Do not expose the selected RTSP port or diagnostics port `1985` to the internet.
 
 For complete installation, credential, network, and troubleshooting guidance,

@@ -120,4 +120,4 @@ def test_annexb_stream_rejects_short_or_invalid_hevc_nalus() -> None:
     assert not module.is_safe_hevc_annexb_au(invalid_tid)
 
     source = inspect.getsource(module.main)
-    assert "if not is_safe_hevc_annexb_au(data)" in source
+    assert "elif not is_safe_hevc_annexb_au(data)" in source
