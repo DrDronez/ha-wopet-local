@@ -11,9 +11,10 @@ import sys
 import time
 from pathlib import Path
 
-INITIAL_RETRY_DELAY = 30
-MAX_RETRY_DELAY = 300
+INITIAL_RETRY_DELAY = 60
+MAX_RETRY_DELAY = 600
 HEALTHY_RUN_SECONDS = 60
+DEFAULT_RETRY_STATE_FILE = "/data/wopet_retry_state.json"
 
 
 def _required_string(options: dict[str, object], name: str) -> str:
@@ -27,6 +28,37 @@ def _retry_delay(consecutive_failures: int) -> int:
     """Return a camera-friendly exponential reconnect delay."""
     exponent = max(0, consecutive_failures - 1)
     return min(INITIAL_RETRY_DELAY * (2**exponent), MAX_RETRY_DELAY)
+
+
+def _load_retry_state(path: Path) -> tuple[int, float]:
+    """Load a cross-process cooldown, tolerating old or damaged state files."""
+    try:
+        state = json.loads(path.read_text(encoding="utf-8"))
+        failures = max(0, int(state.get("consecutive_failures", 0)))
+        next_attempt = max(0.0, float(state.get("next_attempt", 0)))
+        return failures, next_attempt
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        return 0, 0.0
+
+
+def _save_retry_state(path: Path, failures: int, next_attempt: float) -> None:
+    """Atomically persist retry history so a go2rtc respawn cannot erase it."""
+    temporary = path.with_suffix(f"{path.suffix}.tmp")
+    temporary.write_text(
+        json.dumps(
+            {"consecutive_failures": failures, "next_attempt": next_attempt},
+            separators=(",", ":"),
+        ),
+        encoding="utf-8",
+    )
+    temporary.replace(path)
+
+
+def _clear_retry_state(path: Path) -> None:
+    try:
+        path.unlink()
+    except FileNotFoundError:
+        pass
 
 
 def main() -> None:
@@ -47,6 +79,9 @@ def main() -> None:
 
     vendor = Path(__file__).parents[1] / "vendor" / "cuboai_tutk"
     streamer = vendor / "cuboai_stream_video.py"
+    retry_state_path = Path(
+        os.environ.get("WOPET_RETRY_STATE_FILE", DEFAULT_RETRY_STATE_FILE)
+    )
     stopping = False
     child: subprocess.Popen[bytes] | None = None
 
@@ -59,21 +94,37 @@ def main() -> None:
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
 
-    consecutive_failures = 0
+    consecutive_failures, next_attempt = _load_retry_state(retry_state_path)
     while not stopping:
+        while not stopping and time.time() < next_attempt:
+            time.sleep(min(0.5, next_attempt - time.time()))
+        if stopping:
+            return
+
         started = time.monotonic()
         child = subprocess.Popen([sys.executable, str(streamer)], env=os.environ.copy())
         return_code = child.wait()
         runtime = time.monotonic() - started
         child = None
 
-        if stopping:
-            return
-
         if runtime >= HEALTHY_RUN_SECONDS:
             consecutive_failures = 0
+            next_attempt = 0.0
+            _clear_retry_state(retry_state_path)
+
+        if stopping:
+            if runtime < HEALTHY_RUN_SECONDS:
+                consecutive_failures += 1
+                delay = _retry_delay(consecutive_failures)
+                _save_retry_state(
+                    retry_state_path, consecutive_failures, time.time() + delay
+                )
+            return
+
         consecutive_failures += 1
         delay = _retry_delay(consecutive_failures)
+        next_attempt = time.time() + delay
+        _save_retry_state(retry_state_path, consecutive_failures, next_attempt)
         print(
             "Wopet stream process ended "
             f"(exit {return_code}, ran {runtime:.1f}s); retrying in {delay}s",
@@ -81,9 +132,8 @@ def main() -> None:
             flush=True,
         )
 
-        deadline = time.monotonic() + delay
-        while not stopping and time.monotonic() < deadline:
-            time.sleep(min(0.5, deadline - time.monotonic()))
+        while not stopping and time.time() < next_attempt:
+            time.sleep(min(0.5, next_attempt - time.time()))
 
 
 if __name__ == "__main__":

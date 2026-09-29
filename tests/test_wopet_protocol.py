@@ -69,17 +69,33 @@ def test_wopet_wrapper_supervises_the_stream_with_bounded_backoff() -> None:
     spec.loader.exec_module(wrapper)
 
     assert [wrapper._retry_delay(attempt) for attempt in range(1, 7)] == [
-        30,
         60,
         120,
         240,
-        300,
-        300,
+        480,
+        600,
+        600,
     ]
 
     source = inspect.getsource(wrapper.main)
     assert "subprocess.Popen" in source
     assert "child.terminate()" in source
+
+
+def test_wopet_wrapper_persists_backoff_across_go2rtc_respawns(tmp_path: Path) -> None:
+    """A new exec wrapper must retain the camera cooldown from its predecessor."""
+    wrapper_path = ROOT / "wopet_bridge/wopet/wopet_stream.py"
+    spec = importlib.util.spec_from_file_location("wopet_stream_state", wrapper_path)
+    assert spec is not None and spec.loader is not None
+    wrapper = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(wrapper)
+
+    state_path = tmp_path / "retry.json"
+    wrapper._save_retry_state(state_path, 3, 1234.5)
+
+    assert wrapper._load_retry_state(state_path) == (3, 1234.5)
+    wrapper._clear_retry_state(state_path)
+    assert wrapper._load_retry_state(state_path) == (0, 0.0)
 
 
 def test_annexb_stream_waits_for_a_safe_hevc_opening_frame() -> None:
