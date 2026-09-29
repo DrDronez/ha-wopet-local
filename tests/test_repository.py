@@ -39,6 +39,7 @@ def test_home_assistant_app_metadata_is_valid_yaml() -> None:
     assert app["slug"] == "wopet_local_bridge"
     assert app["arch"] == ["amd64"]
     assert app["host_network"] is True
+    assert app["ingress_port"] == 1985
     assert app["options"]["rtsp_port"] == 8554
     assert app["schema"]["rtsp_port"] == "port"
     assert "configuration" in translations
