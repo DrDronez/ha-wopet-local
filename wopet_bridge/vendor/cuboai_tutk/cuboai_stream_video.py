@@ -60,6 +60,17 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cuboai_session import get_session   # auto: PureSession (no --lib) or TUTKSession
 
 
+def is_annexb_keyframe(au):
+    """Return whether an Annex-B AU can safely open a new HEVC stream.
+
+    go2rtc probes an exec source from its first NAL and requires VPS/SPS/PPS or
+    an IRAP frame. A reconnect may begin mid-GOP, so forwarding an ordinary
+    P-frame first makes go2rtc reject the source and immediately respawn it.
+    """
+    return (len(au) >= 5 and au[:4] == b'\x00\x00\x00\x01'
+            and ((au[4] >> 1) & 0x3f) in (32, 33, 34, 19, 20, 21))
+
+
 # ── Production env profile ─────────────────────────────────────────────────
 # The proven streaming stack — MPEG-TS container + FRAMEINFO strip + selective-repeat loss
 # recovery + clean-GOP — is the default so the engine works out of the box. Applied via
@@ -251,8 +262,7 @@ def mux_timed_stream(frames_timed, emit, *, clean_gop=True, mux_audio=False, log
     from cuboai_mpegts import TSMuxer
 
     def _nal_kf(au):
-        return (len(au) >= 5 and au[:4] == b'\x00\x00\x00\x01'
-                and ((au[4] >> 1) & 0x3f) in (32, 33, 34, 19, 20, 21))
+        return is_annexb_keyframe(au)
 
     # AVTimeline is the single source of truth for shared-base A/V PTS (also used by
     # cuboai_pure.record_video) so the live stream and a saved .mp4 stay in lockstep. Its audio
@@ -461,8 +471,13 @@ def main() -> None:
             mux_audio = os.environ.get('CUBOAI_MUX_AUDIO', '0') != '0'
             mux_timed_stream(sess.av_frames_timed(), _emit, clean_gop=clean_gop, mux_audio=mux_audio)
         else:
+            waiting_for_keyframe = True
             for frame_type, data in sess.av_frames():
                 if frame_type == 'video':
+                    if waiting_for_keyframe:
+                        if not is_annexb_keyframe(data):
+                            continue
+                        waiting_for_keyframe = False
                     _emit(data)
     except (BrokenPipeError, KeyboardInterrupt):
         # go2rtc closed the pipe (stream stopped) — clean exit

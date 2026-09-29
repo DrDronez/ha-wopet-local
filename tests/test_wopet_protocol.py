@@ -80,3 +80,24 @@ def test_wopet_wrapper_supervises_the_stream_with_bounded_backoff() -> None:
     source = inspect.getsource(wrapper.main)
     assert "subprocess.Popen" in source
     assert "child.terminate()" in source
+
+
+def test_annexb_stream_waits_for_a_safe_hevc_opening_frame() -> None:
+    """A reconnect that begins on a P-frame must wait for VPS/IRAP before go2rtc sees it."""
+    module_path = ROOT / "wopet_bridge/vendor/cuboai_tutk/cuboai_stream_video.py"
+    spec = importlib.util.spec_from_file_location("wopet_cuboai_stream_video", module_path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    p_frame = bytes.fromhex("000000010201d04c")
+    vps_frame = bytes.fromhex("0000000140010c01")
+    idr_frame = bytes.fromhex("000000012601af09")
+
+    assert not module.is_annexb_keyframe(p_frame)
+    assert module.is_annexb_keyframe(vps_frame)
+    assert module.is_annexb_keyframe(idr_frame)
+
+    source = inspect.getsource(module.main)
+    assert "waiting_for_keyframe = True" in source
+    assert "if not is_annexb_keyframe(data)" in source
