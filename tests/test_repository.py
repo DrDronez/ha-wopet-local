@@ -67,3 +67,25 @@ def test_camera_initializes_home_assistant_base_class() -> None:
         and node.func.attr == "__init__"
         for node in ast.walk(initializer)
     )
+
+
+def test_camera_uses_rtsp_stream_for_stills() -> None:
+    """Ensure Home Assistant does not call the unimplemented camera_image API."""
+    source = (ROOT / "custom_components/wopet_local/camera.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    camera_class = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "WopetLocalCamera"
+    )
+    stream_for_stills = next(
+        node
+        for node in camera_class.body
+        if isinstance(node, ast.FunctionDef) and node.name == "use_stream_for_stills"
+    )
+    assert any(
+        isinstance(node, ast.Return)
+        and isinstance(node.value, ast.Constant)
+        and node.value.value is True
+        for node in ast.walk(stream_for_stills)
+    )

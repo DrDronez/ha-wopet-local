@@ -26,7 +26,6 @@ class WopetLocalCamera(Camera):
     _attr_brand = "Wopet"
     _attr_model = "Guardian Plus D100"
     _attr_supported_features = CameraEntityFeature.STREAM
-    _attr_use_stream_for_stills = True
 
     def __init__(self, entry: ConfigEntry) -> None:
         """Initialize the entity."""
@@ -36,6 +35,11 @@ class WopetLocalCamera(Camera):
         self._host = entry.data[CONF_HOST]
         self._port = entry.data[CONF_RTSP_PORT]
         self._stream_name = entry.data[CONF_STREAM_NAME]
+
+    @property
+    def use_stream_for_stills(self) -> bool:
+        """Use the RTSP stream to generate snapshots."""
+        return True
 
     async def stream_source(self) -> str:
         """Return the local bridge RTSP source."""
