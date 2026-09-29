@@ -101,3 +101,23 @@ def test_annexb_stream_waits_for_a_safe_hevc_opening_frame() -> None:
     source = inspect.getsource(module.main)
     assert "waiting_for_keyframe = True" in source
     assert "if not is_annexb_keyframe(data)" in source
+
+
+def test_annexb_stream_rejects_short_or_invalid_hevc_nalus() -> None:
+    """Malformed NAL units must not reach go2rtc's panic-prone HEVC packetizer."""
+    module_path = ROOT / "wopet_bridge/vendor/cuboai_tutk/cuboai_stream_video.py"
+    spec = importlib.util.spec_from_file_location("wopet_cuboai_stream_safety", module_path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    valid = bytes.fromhex("0000000140010c01000000012601af09")
+    one_byte_nalu = bytes.fromhex("0000000140010c010000000102")
+    invalid_tid = bytes.fromhex("0000000140000c01")
+
+    assert module.is_safe_hevc_annexb_au(valid)
+    assert not module.is_safe_hevc_annexb_au(one_byte_nalu)
+    assert not module.is_safe_hevc_annexb_au(invalid_tid)
+
+    source = inspect.getsource(module.main)
+    assert "if not is_safe_hevc_annexb_au(data)" in source

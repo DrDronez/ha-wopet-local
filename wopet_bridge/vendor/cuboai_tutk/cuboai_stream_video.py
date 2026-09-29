@@ -71,6 +71,40 @@ def is_annexb_keyframe(au):
             and ((au[4] >> 1) & 0x3f) in (32, 33, 34, 19, 20, 21))
 
 
+def is_safe_hevc_annexb_au(au):
+    """Reject malformed AUs before go2rtc's HEVC packetizer sees them.
+
+    A damaged/reassembled frame can contain a one-byte NAL between Annex-B
+    delimiters. go2rtc 1.9.14 assumes both HEVC header bytes exist and panics on
+    that input, restarting the whole app. Valid HEVC NALs have two header bytes,
+    a clear forbidden bit, and a non-zero temporal_id_plus1 field.
+    """
+    starts = []
+    i = 0
+    while i <= len(au) - 3:
+        if au[i:i + 4] == b'\x00\x00\x00\x01':
+            starts.append((i, 4))
+            i += 4
+        elif au[i:i + 3] == b'\x00\x00\x01':
+            starts.append((i, 3))
+            i += 3
+        else:
+            i += 1
+
+    if not starts or starts[0][0] != 0:
+        return False
+
+    for index, (offset, marker_len) in enumerate(starts):
+        nalu_start = offset + marker_len
+        nalu_end = starts[index + 1][0] if index + 1 < len(starts) else len(au)
+        if nalu_end - nalu_start < 2:
+            return False
+        high, low = au[nalu_start], au[nalu_start + 1]
+        if high & 0x80 or not low & 0x07:
+            return False
+    return True
+
+
 # ── Production env profile ─────────────────────────────────────────────────
 # The proven streaming stack — MPEG-TS container + FRAMEINFO strip + selective-repeat loss
 # recovery + clean-GOP — is the default so the engine works out of the box. Applied via
@@ -474,6 +508,9 @@ def main() -> None:
             waiting_for_keyframe = True
             for frame_type, data in sess.av_frames():
                 if frame_type == 'video':
+                    if not is_safe_hevc_annexb_au(data):
+                        waiting_for_keyframe = True
+                        continue
                     if waiting_for_keyframe:
                         if not is_annexb_keyframe(data):
                             continue
