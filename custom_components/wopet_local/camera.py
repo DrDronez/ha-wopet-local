@@ -30,6 +30,7 @@ class WopetLocalCamera(Camera):
 
     def __init__(self, entry: ConfigEntry) -> None:
         """Initialize the entity."""
+        super().__init__()
         self._attr_name = entry.data[CONF_NAME]
         self._attr_unique_id = entry.unique_id or entry.entry_id
         self._host = entry.data[CONF_HOST]

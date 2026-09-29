@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import json
 from pathlib import Path
 
@@ -38,3 +39,28 @@ def test_home_assistant_app_metadata_is_valid_yaml() -> None:
     assert app["slug"] == "wopet_local_bridge"
     assert app["arch"] == ["amd64"]
     assert "configuration" in translations
+
+
+def test_camera_initializes_home_assistant_base_class() -> None:
+    """Prevent Camera internals from being absent when the entity is registered."""
+    source = (ROOT / "custom_components/wopet_local/camera.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    camera_class = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "WopetLocalCamera"
+    )
+    initializer = next(
+        node
+        for node in camera_class.body
+        if isinstance(node, ast.FunctionDef) and node.name == "__init__"
+    )
+    assert any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Call)
+        and isinstance(node.func.value.func, ast.Name)
+        and node.func.value.func.id == "super"
+        and node.func.attr == "__init__"
+        for node in ast.walk(initializer)
+    )
