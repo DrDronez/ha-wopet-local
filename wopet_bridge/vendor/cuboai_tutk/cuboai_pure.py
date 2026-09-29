@@ -2187,9 +2187,9 @@ class TUTKDirectSession:
         self._talk_stop = False         # cooperative stop flag for a looping send_audio_file / stop_audio()
 
     def _vlog(self, msg):
-        """S62: print a connect/stream trace line when verbose is on (never wire-affecting)."""
+        """Print a connect/stream trace without corrupting the stdout media pipe."""
         if self._verbose:
-            print(msg, flush=True)
+            print(msg, file=sys.stderr, flush=True)
 
     def connect(self, timeout=8.0, attempts=8):
         """Run the LAN handshake; returns True and sets .session_hdr on success.

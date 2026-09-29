@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import inspect
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
@@ -44,3 +45,10 @@ def test_wopet_x2043_carries_ack_and_av_session_fields() -> None:
     assert decoded[44:46] == bytes.fromhex("7841")
     assert decoded[47] == 0x13
     assert decoded[48:52] == bytes.fromhex("0b5fcde3")
+
+
+def test_verbose_protocol_logging_uses_stderr() -> None:
+    """Debug traces must never be mixed into go2rtc's stdout media stream."""
+    protocol = _load_protocol_module()
+    source = inspect.getsource(protocol.TUTKDirectSession._vlog)
+    assert "file=sys.stderr" in source
