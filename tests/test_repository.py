@@ -19,6 +19,7 @@ def test_manifest_and_hacs_metadata_are_valid_json() -> None:
     hacs = json.loads((ROOT / "hacs.json").read_text(encoding="utf-8"))
     assert manifest["domain"] == "wopet_local"
     assert manifest["config_flow"] is True
+    assert manifest["version"] == "0.1.0"
     assert hacs["name"] == "Wopet Local"
 
 

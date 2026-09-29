@@ -43,8 +43,8 @@ Complete bridge instructions, credential guidance, and troubleshooting are in
 
 ## Install the HACS integration
 
-This repository is intentionally not listed in HACS's default catalog during
-the alpha period.
+This repository is intentionally not listed in HACS's default catalog. Install
+it as a custom repository.
 
 1. In HACS, open the three-dot menu and select **Custom repositories**.
 2. Add `https://github.com/DrDronez/ha-wopet-local` as type **Integration**.
@@ -61,8 +61,8 @@ See [HACS setup](docs/HACS_SETUP.md) for screenshots-free, step-by-step details.
 | --- | --- |
 | Direct LAN authentication | Validated |
 | HEVC/H.265 video | Validated experimentally |
-| RTSP restream | Alpha |
-| Home Assistant camera entity | Alpha |
+| RTSP restream | Validated on firmware `40.23.6.5` |
+| Home Assistant camera entity | Validated live view |
 | Audio | Planned |
 | PTZ | Planned |
 | Quality selection | Planned |

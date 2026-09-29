@@ -45,12 +45,12 @@ used in your installation.
 
 ## Getting device credentials
 
-The initial alpha intentionally does not ask for the Wopet account password.
+The bridge intentionally does not ask for the Wopet account password.
 The mobile app's account bootstrap traffic has been observed using plain HTTP,
 so automatically repeating that login flow would expose reusable account
 material in transit.
 
-The alpha includes a local extractor for a PCAPdroid capture of your own Wopet
+The repository includes a local extractor for a PCAPdroid capture of your own Wopet
 app session:
 
 1. Install PCAPdroid on the Android device that runs Wopet.
@@ -80,7 +80,7 @@ you own or are explicitly authorized to test.
   host networking because the TUTK/Kalay session handshake does not survive
   container NAT.
 - The configured RTSP TCP port must be unused on the Home Assistant host.
-- TCP port `1984` exposes the go2rtc status page on the Home Assistant host for
+- TCP port `1985` exposes the go2rtc status page on the Home Assistant host for
   local diagnostics. Do not forward either port to the internet.
 - Privileged container access is not required.
 
@@ -98,8 +98,9 @@ the camera can change its device credentials.
 
 ### RTSP connects but no picture appears
 
-HEVC support varies by browser and dashboard path. Test the RTSP URL with VLC,
-then verify go2rtc's local status page at `http://HOME_ASSISTANT_HOST:1984`.
+Confirm the Home Assistant integration uses the same RTSP port and stream name
+as the bridge. Test the RTSP URL with VLC, then verify go2rtc's protected app
+Web UI or local status page at `http://HOME_ASSISTANT_HOST:1985`.
 
 ### Reporting a problem
 

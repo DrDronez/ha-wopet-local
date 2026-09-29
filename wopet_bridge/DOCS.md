@@ -17,7 +17,7 @@ rtsp://HOME_ASSISTANT_HOST:RTSP_PORT/wopet
 ```
 
 The app's **Open Web UI** button opens the protected go2rtc diagnostics page.
-Do not expose the selected RTSP port or port 1984 to the internet.
+Do not expose the selected RTSP port or diagnostics port `1985` to the internet.
 
 For complete installation, credential, network, and troubleshooting guidance,
 see https://github.com/DrDronez/ha-wopet-local/blob/main/docs/BRIDGE_SETUP.md

@@ -16,8 +16,8 @@ Install and start the [Wopet Local Bridge](BRIDGE_SETUP.md) first.
 5. Search for **Wopet Local** and install it.
 6. Restart Home Assistant when HACS requests it.
 
-This project is public so HACS can download it, but it is intentionally not
-submitted to HACS's default catalog during alpha testing.
+This project is public so HACS can download it, but it has not been submitted
+to HACS's default catalog. Add it as a custom repository using the steps above.
 
 ## Add the integration
 
