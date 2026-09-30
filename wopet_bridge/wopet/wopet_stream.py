@@ -116,12 +116,11 @@ def main() -> None:
             _clear_retry_state(retry_state_path)
 
         if stopping:
-            if runtime < HEALTHY_RUN_SECONDS:
-                consecutive_failures += 1
-                delay = _retry_delay(consecutive_failures)
-                _save_retry_state(
-                    retry_state_path, consecutive_failures, time.time() + delay
-                )
+            # go2rtc stops an on-demand exec producer when its last consumer
+            # disconnects. That is a normal lifecycle event, not a camera
+            # failure; carrying a cooldown into the next viewer would make the
+            # producer emit no bytes and break the next RTSP request.
+            _clear_retry_state(retry_state_path)
             return
 
         consecutive_failures += 1

@@ -153,6 +153,18 @@ def test_wopet_wrapper_persists_backoff_across_go2rtc_respawns(tmp_path: Path) -
     assert wrapper._load_retry_state(state_path) == (0, 0.0)
 
 
+def test_normal_consumer_disconnect_does_not_create_a_cooldown() -> None:
+    """go2rtc stopping its on-demand producer must not poison the next view."""
+    source = (ROOT / "wopet_bridge/wopet/wopet_stream.py").read_text(
+        encoding="utf-8"
+    )
+    stopping_branch = source.split("if stopping:", 2)[-1].split(
+        "consecutive_failures += 1", 1
+    )[0]
+    assert "_clear_retry_state(retry_state_path)" in stopping_branch
+    assert "_save_retry_state" not in stopping_branch
+
+
 def test_annexb_stream_waits_for_a_safe_hevc_opening_frame() -> None:
     """A reconnect that begins on a P-frame must wait for VPS/IRAP before go2rtc sees it."""
     module_path = ROOT / "wopet_bridge/vendor/cuboai_tutk/cuboai_stream_video.py"
