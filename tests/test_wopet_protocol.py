@@ -171,6 +171,26 @@ def test_wopet_audio_uses_captured_four_byte_start_payload(monkeypatch) -> None:
     assert "_stream_start_mid_command()" not in wopet_branch
 
 
+def test_wopet_pcm_audio_is_detected_and_converted_to_pcma(monkeypatch) -> None:
+    protocol = _load_protocol_module()
+    frame = (b"\x00\x00" * 400) + bytes.fromhex(
+        "8c000200000000000000000000000000"
+    )
+    info = protocol._parse_wopet_pcm_frame(frame)
+    assert info is not None
+    assert info["codec"] == "pcm_s16le"
+    assert info["sample_rate"] == 8000
+    assert info["channels"] == 1
+
+    stream_path = ROOT / "wopet_bridge/vendor/cuboai_tutk/cuboai_stream_video.py"
+    spec = importlib.util.spec_from_file_location("wopet_stream_audio", stream_path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    monkeypatch.syspath_prepend(str(stream_path.parent))
+    spec.loader.exec_module(module)
+    assert module.pcm_s16le_to_alaw(b"\x00\x00" * 400) == b"\xd5" * 400
+
+
 def test_wopet_wrapper_supervises_the_stream_with_bounded_backoff() -> None:
     """A failed camera handshake must not become a go2rtc respawn storm."""
     wrapper_path = ROOT / "wopet_bridge/wopet/wopet_stream.py"

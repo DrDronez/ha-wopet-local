@@ -503,6 +503,30 @@ def _parse_audio_frameinfo(fi: bytes) -> dict:
     }
 
 
+def _parse_wopet_pcm_frame(unit: bytes):
+    """Return PCM payload metadata for Wopet's 16-byte audio trailer."""
+    if len(unit) < 18 or len(unit[:-16]) % 2:
+        return None
+    fi = unit[-16:]
+    if struct.unpack_from("<H", fi, 0)[0] != 0x008C:
+        return None
+    flags = fi[2]
+    rate_index = (flags >> 2) & 0x0F
+    rates = (8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000)
+    if rate_index >= len(rates) or not (flags & 0x02):
+        return None
+    return {
+        "codec_id": 0x008C,
+        "codec": "pcm_s16le",
+        "is_audio": True,
+        "is_keyframe": True,
+        "sample_rate": rates[rate_index],
+        "channels": 2 if flags & 0x01 else 1,
+        "ts_valid": False,
+        "trailer_len": 16,
+    }
+
+
 # AudioSpecificConfig for AAC-LC 16 kHz mono (objectType=2, sfIndex=8, channels=1):
 #   00010 1000 0001 -> 0x14 0x08.  Needed as mp4 `esds` extradata when stream-copying
 #   the camera's ADTS audio into an MP4 (ADTS headers are stripped for MP4).
@@ -3539,6 +3563,9 @@ class TUTKDirectSession:
                 return 'video'
             if len(b) >= 2 and b[0] == 0xFF and (b[1] & 0xF6) == 0xF0:
                 return 'audio'
+            if (os.environ.get("CUBOAI_WOPET_AUDIOSTART") == "1"
+                    and _parse_wopet_pcm_frame(b) is not None):
+                return 'audio'
             return None             # system/login frame — skip
 
         def emit(kind, unit, fi=None):
@@ -3619,7 +3646,17 @@ class TUTKDirectSession:
                 self._stat_au_audio += 1
             _au_fi = None        # Part A: the parsed FRAMEINFO for THIS au (set below when stripped)
             if kind == 'audio':
-                fl = _adts_frame_len(unit)
+                _wopet_pcm = (
+                    _parse_wopet_pcm_frame(unit)
+                    if os.environ.get("CUBOAI_WOPET_AUDIOSTART") == "1"
+                    else None
+                )
+                if _wopet_pcm is not None:
+                    _au_fi = _wopet_pcm
+                    unit = unit[:-_wopet_pcm["trailer_len"]]
+                    fl = None
+                else:
+                    fl = _adts_frame_len(unit)
                 # S91/Phase-3: surface the audio FRAMEINFO ts (gated CUBOAI_STRIP_FRAMEINFO, like
                 # video). A complete audio AU is [ADTS frame (fl)] + [24B trailer]; parse the trailer
                 # at [fl:fl+24] (audio codec_id + plausible rate/channels) for its ts_sec BEFORE

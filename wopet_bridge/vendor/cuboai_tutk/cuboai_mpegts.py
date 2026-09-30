@@ -18,6 +18,8 @@ STREAM_TYPE = {
     'h264': 0x1B, 'avc': 0x1B,
     'mpeg4': 0x10, 'mjpeg': 0x06,
     'aac': 0x0F,                       # for a future audio track (ADTS)
+    'pcma': 0x90,                      # go2rtc/Tapo convention: G.711 A-law
+    'pcmu': 0x91,                      # go2rtc/Tapo convention: G.711 mu-law
 }
 _PID_PAT = 0x0000
 _PID_PMT = 0x1000

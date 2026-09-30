@@ -27,6 +27,17 @@ def test_pat_encodes_reserved_bits_before_pmt_pid() -> None:
     assert ((pat[15] & 0x1F) << 8) | pat[16] == 0x1000
 
 
+def test_pcma_audio_stream_is_advertised_for_go2rtc() -> None:
+    stream = TSMuxer(codec="hevc", audio_codec="pcma").mux_au(
+        b"\x00\x00\x00\x01\x26\x01" + (b"\x22" * 32),
+        0,
+        keyframe=True,
+        now_ms=0,
+    )
+    pmt = stream[188:376]
+    assert b"\x90\xe1\x01\xf0\x00" in pmt
+
+
 def test_clean_gop_accepts_idr_when_frameinfo_flag_is_clear() -> None:
     """Firmware 40.23.6.5 exposes IDR NALs without its metadata keyframe flag."""
     p_frame = b"\x00\x00\x00\x01\x02\x01" + (b"\x11" * 32)

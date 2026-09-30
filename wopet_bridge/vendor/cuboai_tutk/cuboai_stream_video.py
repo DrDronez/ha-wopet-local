@@ -217,6 +217,30 @@ def _stderr(msg: str) -> None:
     print(msg, file=sys.stderr, flush=True)
 
 
+def _linear_to_alaw(sample):
+    """Encode one signed 16-bit PCM sample as ITU G.711 A-law."""
+    sample = max(-32768, min(32767, sample)) >> 3
+    mask = 0xD5 if sample >= 0 else 0x55
+    if sample < 0:
+        sample = -sample - 1
+    boundaries = (0x1F, 0x3F, 0x7F, 0xFF, 0x1FF, 0x3FF, 0x7FF, 0xFFF)
+    segment = next((i for i, bound in enumerate(boundaries) if sample <= bound), 8)
+    if segment >= 8:
+        return 0x7F ^ mask
+    value = segment << 4
+    value |= ((sample >> 1) if segment < 2 else (sample >> segment)) & 0x0F
+    return value ^ mask
+
+
+def pcm_s16le_to_alaw(data):
+    """Convert mono little-endian PCM16 to browser/WebRTC-compatible PCMA."""
+    usable = len(data) - (len(data) % 2)
+    return bytes(
+        _linear_to_alaw(int.from_bytes(data[i:i + 2], "little", signed=True))
+        for i in range(0, usable, 2)
+    )
+
+
 def _verbose_loop(sess, interval, camera_stats, stop):
     """Periodic stream-health to STDERR ONLY (stdout is the media pipe — never touched).
 
@@ -305,7 +329,8 @@ def mux_timed_stream(frames_timed, emit, *, clean_gop=True, mux_audio=False, log
     # AVTimeline is the single source of truth for shared-base A/V PTS (also used by
     # cuboai_pure.record_video) so the live stream and a saved .mp4 stay in lockstep. Its audio
     # clock is created but only fed when mux_audio → the audio-off path is byte-identical.
-    avc = AVTimeline()
+    wopet_pcm = os.environ.get("CUBOAI_WOPET_AUDIOSTART") == "1"
+    avc = AVTimeline(audio_nominal_ms=(50.0 if wopet_pcm else 64.0))
     mux = None; _warned = False
     synced = not clean_gop; _cg_drop = 0
     psi_now = [0]                                # monotonic PSI cadence clock (audio path only)
@@ -313,11 +338,14 @@ def mux_timed_stream(frames_timed, emit, *, clean_gop=True, mux_audio=False, log
     if clean_gop:
         log("[clean_gop] ON — emitting only complete AUs, resync at IDR after any hole")
     if mux_audio:
-        log("[mux_audio] ON — interleaving AAC audio (shared-base PTS) on a second TS PID")
+        audio_name = "PCMA (from Wopet PCM)" if wopet_pcm else "AAC"
+        log(f"[mux_audio] ON — interleaving {audio_name} audio (shared-base PTS) on a second TS PID")
     for kind, data, fi in frames_timed:
         if kind == 'audio':
             if not mux_audio or mux is None:         # need the muxer (built on first video AU)
                 continue
+            if (fi or {}).get('codec') == 'pcm_s16le':
+                data = pcm_s16le_to_alaw(data)
             ta = avc.audio(fi)                       # shared-base; lost trailer → AAC-cadence interp
             now = max(psi_now[0], int(ta['pts_ms'])); psi_now[0] = now
             emit(mux.mux_audio_au(data, ta['pts_90k'], now_ms=now))
@@ -328,8 +356,9 @@ def mux_timed_stream(frames_timed, emit, *, clean_gop=True, mux_audio=False, log
             continue
         if mux is None:
             codec = (fi or {}).get('codec', 'hevc')
-            mux = TSMuxer(codec=codec, audio_codec=('aac' if mux_audio else None))
-            log(f"[mpegts] muxing {codec}{'+aac' if mux_audio else ''} → MPEG-TS with FRAMEINFO PTS "
+            audio_codec = ('pcma' if wopet_pcm else 'aac') if mux_audio else None
+            mux = TSMuxer(codec=codec, audio_codec=audio_codec)
+            log(f"[mpegts] muxing {codec}{'+' + audio_codec if audio_codec else ''} → MPEG-TS with FRAMEINFO PTS "
                 f"(stream_type=0x{mux.stream_type:02x})")
         if clean_gop:
             if fi is None:                           # incomplete AU → poison the GOP tail
