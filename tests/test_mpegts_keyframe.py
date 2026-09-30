@@ -9,7 +9,22 @@ ROOT = Path(__file__).parents[1]
 VENDOR = ROOT / "wopet_bridge/vendor/cuboai_tutk"
 sys.path.insert(0, str(VENDOR))
 
+from cuboai_mpegts import TSMuxer  # noqa: E402
 from cuboai_stream_video import mux_timed_stream  # noqa: E402
+
+
+def test_pat_encodes_reserved_bits_before_pmt_pid() -> None:
+    """Emit the reserved ``111`` bits required before PAT program-map PIDs."""
+    stream = TSMuxer(codec="hevc", audio_codec="aac").mux_au(
+        b"\x00\x00\x00\x01\x26\x01" + (b"\x22" * 32),
+        0,
+        keyframe=True,
+        now_ms=0,
+    )
+
+    pat = stream[:188]
+    assert pat[15] & 0xE0 == 0xE0
+    assert ((pat[15] & 0x1F) << 8) | pat[16] == 0x1000
 
 
 def test_clean_gop_accepts_idr_when_frameinfo_flag_is_clear() -> None:

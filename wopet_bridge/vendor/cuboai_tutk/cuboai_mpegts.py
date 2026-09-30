@@ -100,7 +100,12 @@ class TSMuxer:
     def _pat(self) -> bytes:
         # table_id(0) ssi=1 '0' rr '11' section_length | tsid(16) rr version cur | sec=0 last=0 |
         #   program(16) rrr PMT_PID(13)
-        body = bytes((0x00, 0x01, _PID_PMT >> 8 & 0xFF, _PID_PMT & 0xFF))  # program 1 -> PMT_PID
+        body = bytes((
+            0x00,
+            0x01,
+            0xE0 | ((_PID_PMT >> 8) & 0x1F),
+            _PID_PMT & 0xFF,
+        ))  # program 1 -> reserved '111' + PMT_PID(13)
         # section after the 3-byte header start: tsid, version/cur, sec, last, body
         sec = bytes((0x00, 0x01,                                   # tsid = 1
                      0xC1 | (self.version << 1),                   # rr=11 version cur=1
