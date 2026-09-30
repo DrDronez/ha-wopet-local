@@ -66,3 +66,41 @@ def test_clean_gop_accepts_idr_when_frameinfo_flag_is_clear() -> None:
 
     assert output
     assert output[0].startswith(b"\x47")
+
+
+def test_wopet_pcma_is_primed_before_delayed_camera_audio() -> None:
+    """Keep audio visible when the first real listen frame misses the probe window."""
+    video = b"\x00\x00\x00\x01\x26\x01" + (b"\x22" * 32)
+    frameinfo = {
+        "codec": "hevc",
+        "timestamp_ms": 1_000,
+        "ts_valid": True,
+        "is_keyframe": True,
+        "frame_no": 1,
+    }
+    output: list[bytes] = []
+
+    import os
+
+    previous = os.environ.get("CUBOAI_WOPET_AUDIOSTART")
+    os.environ["CUBOAI_WOPET_AUDIOSTART"] = "1"
+    try:
+        mux_timed_stream(
+            iter((("video", video, frameinfo),)),
+            output.append,
+            clean_gop=True,
+            mux_audio=True,
+            log=lambda _message: None,
+        )
+    finally:
+        if previous is None:
+            os.environ.pop("CUBOAI_WOPET_AUDIOSTART", None)
+        else:
+            os.environ["CUBOAI_WOPET_AUDIOSTART"] = previous
+
+    packet_pids = {
+        ((packet[1] & 0x1F) << 8) | packet[2]
+        for blob in output
+        for packet in (blob[index : index + 188] for index in range(0, len(blob), 188))
+    }
+    assert 0x0101 in packet_pids

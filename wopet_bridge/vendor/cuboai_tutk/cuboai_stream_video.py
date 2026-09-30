@@ -332,6 +332,7 @@ def mux_timed_stream(frames_timed, emit, *, clean_gop=True, mux_audio=False, log
     wopet_pcm = os.environ.get("CUBOAI_WOPET_AUDIOSTART") == "1"
     avc = AVTimeline(audio_nominal_ms=(50.0 if wopet_pcm else 64.0))
     mux = None; _warned = False
+    audio_primed = False
     synced = not clean_gop; _cg_drop = 0
     psi_now = [0]                                # monotonic PSI cadence clock (audio path only)
 
@@ -387,6 +388,14 @@ def mux_timed_stream(frames_timed, emit, *, clean_gop=True, mux_audio=False, log
         now = int(t['pts_ms'])
         if mux_audio:
             now = max(psi_now[0], now); psi_now[0] = now
+        # Firmware 40.23.6.5 can take more than go2rtc's probe window to
+        # deliver its first listen frame. Emit one 50 ms PCMA silence frame
+        # with the opening video timestamp so the audio PID is discovered on
+        # every producer reconnect; real camera audio replaces it as soon as
+        # it arrives.
+        if mux_audio and wopet_pcm and not audio_primed:
+            emit(mux.mux_audio_au(b'\xd5' * 400, t['pts_90k'], now_ms=now))
+            audio_primed = True
         emit(mux.mux_au(data, t['pts_90k'], keyframe=t['keyframe'], now_ms=now))
         if tap is not None:
             tap(t['pts_90k'], t['keyframe'], t['pts_ms'])
