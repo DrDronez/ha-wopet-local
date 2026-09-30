@@ -22,13 +22,19 @@
   "options": {
     "step": {
       "init": {
-        "title": "Wopet bridge controls",
-        "description": "Use the same private control token configured in the Wopet Local Bridge app.",
+        "title": "Wopet bridge connection and controls",
+        "description": "The bridge host must be reachable from Home Assistant Core; do not use 127.0.0.1 on HAOS. Use the same private control token configured in the Wopet Local Bridge app.",
         "data": {
+          "host": "Bridge host",
+          "rtsp_port": "RTSP port",
+          "stream_name": "Stream name",
           "control_port": "Control port",
           "control_token": "Control token"
         }
       }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to the bridge RTSP port. Confirm the app is running and use the HAOS host address rather than 127.0.0.1."
     }
   },
   "entity": {

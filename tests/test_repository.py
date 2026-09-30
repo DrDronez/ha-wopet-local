@@ -113,3 +113,21 @@ def test_options_changes_reload_the_integration() -> None:
         and node.func.attr == "add_update_listener"
         for node in ast.walk(setup)
     )
+
+
+def test_connection_options_override_initial_camera_settings() -> None:
+    """Allow HAOS users to replace an unusable loopback bridge address."""
+    camera_source = (ROOT / "custom_components/wopet_local/camera.py").read_text(
+        encoding="utf-8"
+    )
+    button_source = (ROOT / "custom_components/wopet_local/button.py").read_text(
+        encoding="utf-8"
+    )
+    flow_source = (ROOT / "custom_components/wopet_local/config_flow.py").read_text(
+        encoding="utf-8"
+    )
+    assert "entry.options.get(CONF_HOST, entry.data[CONF_HOST])" in camera_source
+    assert "entry.options.get(CONF_HOST, entry.data[CONF_HOST])" in button_source
+    assert "vol.Required(\n                    CONF_HOST," in flow_source
+    assert "CONF_RTSP_PORT" in flow_source
+    assert "CONF_STREAM_NAME" in flow_source

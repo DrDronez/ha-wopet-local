@@ -82,12 +82,42 @@ class WopetLocalOptionsFlow(config_entries.OptionsFlow):
         self._config_entry = config_entry
 
     async def async_step_init(self, user_input=None):
-        """Collect control port and shared token."""
+        """Collect bridge connection settings and the shared control token."""
+        errors: dict[str, str] = {}
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            host = user_input[CONF_HOST].strip()
+            stream_name = user_input[CONF_STREAM_NAME].strip().strip("/")
+            rtsp_port = user_input[CONF_RTSP_PORT]
+            if not await _port_is_open(host, rtsp_port):
+                errors["base"] = "cannot_connect"
+            else:
+                data = {
+                    **user_input,
+                    CONF_HOST: host,
+                    CONF_STREAM_NAME: stream_name,
+                }
+                return self.async_create_entry(title="", data=data)
 
         schema = vol.Schema(
             {
+                vol.Required(
+                    CONF_HOST,
+                    default=self._config_entry.options.get(
+                        CONF_HOST, self._config_entry.data[CONF_HOST]
+                    ),
+                ): str,
+                vol.Required(
+                    CONF_RTSP_PORT,
+                    default=self._config_entry.options.get(
+                        CONF_RTSP_PORT, self._config_entry.data[CONF_RTSP_PORT]
+                    ),
+                ): vol.All(vol.Coerce(int), vol.Range(min=1, max=65535)),
+                vol.Required(
+                    CONF_STREAM_NAME,
+                    default=self._config_entry.options.get(
+                        CONF_STREAM_NAME, self._config_entry.data[CONF_STREAM_NAME]
+                    ),
+                ): str,
                 vol.Required(
                     CONF_CONTROL_PORT,
                     default=self._config_entry.options.get(
@@ -102,4 +132,4 @@ class WopetLocalOptionsFlow(config_entries.OptionsFlow):
                 ),
             }
         )
-        return self.async_show_form(step_id="init", data_schema=schema)
+        return self.async_show_form(step_id="init", data_schema=schema, errors=errors)

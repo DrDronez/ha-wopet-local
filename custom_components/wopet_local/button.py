@@ -52,10 +52,10 @@ async def async_setup_entry(
     port = int(entry.options.get(CONF_CONTROL_PORT, DEFAULT_CONTROL_PORT))
     client = WopetControlClient(
         hass,
-        entry.data[CONF_HOST],
+        entry.options.get(CONF_HOST, entry.data[CONF_HOST]),
         port,
         token,
-        entry.data[CONF_STREAM_NAME],
+        entry.options.get(CONF_STREAM_NAME, entry.data[CONF_STREAM_NAME]),
     )
     async_add_entities(
         WopetButton(entry, description, client, bool(token))

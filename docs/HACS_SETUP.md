@@ -26,12 +26,15 @@ to HACS's default catalog. Add it as a custom repository using the steps above.
 3. Enter:
 
    - **Bridge host:** the IP address or resolvable hostname of your Home
-     Assistant host;
+     Assistant host. On HAOS, use the host's LAN address, not `127.0.0.1`,
+     because Home Assistant Core runs in a separate container;
    - **RTSP port:** the port selected in the bridge configuration (`8554` by default);
    - **Stream name:** `wopet` unless changed in the bridge configuration;
    - **Camera name:** the friendly name to display in Home Assistant.
 
-4. Open the Wopet Local integration's **Configure** dialog and enter:
+4. Open the Wopet Local integration's **Configure** dialog. You can correct
+   the bridge host, RTSP port, or stream name there without removing the
+   integration, and enter:
 
    - **Control port:** the bridge control port (`1986` by default);
    - **Control token:** the same private random value saved in the bridge app.

@@ -38,9 +38,11 @@ class WopetLocalCamera(Camera):
             "manufacturer": "Wopet",
             "model": "Guardian Plus D100",
         }
-        self._host = entry.data[CONF_HOST]
-        self._port = entry.data[CONF_RTSP_PORT]
-        self._stream_name = entry.data[CONF_STREAM_NAME]
+        self._host = entry.options.get(CONF_HOST, entry.data[CONF_HOST])
+        self._port = entry.options.get(CONF_RTSP_PORT, entry.data[CONF_RTSP_PORT])
+        self._stream_name = entry.options.get(
+            CONF_STREAM_NAME, entry.data[CONF_STREAM_NAME]
+        )
 
     @property
     def use_stream_for_stills(self) -> bool:

@@ -52,6 +52,8 @@ it as a custom repository.
 4. Open **Settings → Devices & services → Add integration → Wopet Local**.
 5. Enter the hostname or IP address of your Home Assistant host, the RTSP port
    selected in the bridge configuration (`8554` by default), and stream name `wopet`.
+   On HAOS, use the host's LAN address rather than `127.0.0.1` because Core
+   runs in a separate container.
 6. Open the integration's **Configure** dialog and enter the same control port
    and private control token used in the bridge app.
 
