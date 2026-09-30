@@ -72,6 +72,7 @@ def main() -> None:
     os.environ["CUBOAI_PASSWORD"] = _required_string(options, "device_password")
     audio_enabled = bool(options.get("enable_audio", False))
     os.environ["CUBOAI_MUX_AUDIO"] = "1" if audio_enabled else "0"
+    os.environ["CUBOAI_WOPET_AUDIOSTART"] = "1" if audio_enabled else "0"
     os.environ["CUBOAI_OUTPUT_FORMAT"] = "mpegts" if audio_enabled else "annexb"
     # Firmware 40.23.6.5 does not reliably mark a complete IDR at the assembled
     # access-unit boundary. Do not hold back the MPEG-TS PAT/PMT while waiting

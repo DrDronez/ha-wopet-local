@@ -1,5 +1,5 @@
 name: Wopet Local Bridge
-version: 0.2.5
+version: 0.2.6
 slug: wopet_local_bridge
 description: Local TUTK/Kalay to RTSP bridge for supported Wopet cameras
 url: https://github.com/DrDronez/ha-wopet-local

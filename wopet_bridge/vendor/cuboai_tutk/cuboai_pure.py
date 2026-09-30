@@ -2883,7 +2883,7 @@ class TUTKDirectSession:
         any IOCTL DATA frame. Runs on the reader thread (the SOLE sender during
         streaming), so there is no send/seq race with maybe_ack / maybe_nak.
         """
-        io_type, pl = self._VIDEO_START_MID
+        io_type, pl = self._stream_start_mid_command()
         self._sock.sendto(
             build_ioctl_data(self._R, self._seq, self._relseq,
                              self._frmno, io_type, pl),
@@ -3269,6 +3269,18 @@ class TUTKDirectSession:
     _MID_IOCTL_SECS = 5.0        # send 0x0300 (stream-start) this long after 0x00FF (native ~5 s)
     _LATE_IOCTL_FRAMES = 100     # send 0x01FF after this many video access units (~native ~5 s)...
     _LATE_IOCTL_SECS = 5.0       # ...or this long after 0x0300/stream-start, whichever first (no-deadlock cap)
+
+    def _stream_start_mid_command(self):
+        """Return the camera-family-specific 0x0300 AUDIOSTART request.
+
+        Wopet D100 firmware 40.23.6.5 uses a four-byte zero payload when the
+        viewer enables listen audio. Cubo firmware uses the original eight-byte
+        payload. The deployment opts into the Wopet form only when audio is
+        requested, preserving the vendored transport's default behavior.
+        """
+        if os.environ.get("CUBOAI_WOPET_AUDIOSTART") == "1":
+            return 0x0300, bytes(4)
+        return self._VIDEO_START_MID
 
     def snapshot(self, timeout_sec=20.0):
         """Capture one video keyframe (raw bytes) over the pure-Python data channel.
@@ -3904,7 +3916,7 @@ class TUTKDirectSession:
         # precede stream-start), so it is gated on BOTH flags being off.
         start = list(self._VIDEO_START)                       # [0x00FF]
         if not self._defer_stream_start:
-            start.append(self._VIDEO_START_MID)               # 0x0300 up front (fast path)
+            start.append(self._stream_start_mid_command())    # 0x0300 up front (fast path)
             if not self._defer_video_start_late:
                 start.append(self._VIDEO_START_LATE)          # 0x01FF up front too
         for io_type, pl in start:

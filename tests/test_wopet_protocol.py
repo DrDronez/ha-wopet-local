@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import inspect
 import struct
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
@@ -141,6 +142,26 @@ def test_pure_session_forwards_live_control_ioctl() -> None:
     ).read_text(encoding="utf-8")
     assert "def ioctl_during_stream(" in source
     assert "return self._inner.ioctl_during_stream(" in source
+
+
+def test_wopet_audio_uses_captured_four_byte_start_payload(monkeypatch) -> None:
+    vendor = ROOT / "wopet_bridge/vendor/cuboai_tutk"
+    sys.path.insert(0, str(vendor))
+    try:
+        import cuboai_pure
+
+        session = object.__new__(cuboai_pure.TUTKDirectSession)
+        monkeypatch.setenv("CUBOAI_WOPET_AUDIOSTART", "1")
+        assert session._stream_start_mid_command() == (0x0300, bytes(4))
+        monkeypatch.setenv("CUBOAI_WOPET_AUDIOSTART", "0")
+        assert session._stream_start_mid_command() == session._VIDEO_START_MID
+    finally:
+        sys.path.remove(str(vendor))
+
+    wrapper = (
+        ROOT / "wopet_bridge/wopet/wopet_stream.py"
+    ).read_text(encoding="utf-8")
+    assert 'os.environ["CUBOAI_WOPET_AUDIOSTART"]' in wrapper
 
 
 def test_wopet_wrapper_supervises_the_stream_with_bounded_backoff() -> None:
