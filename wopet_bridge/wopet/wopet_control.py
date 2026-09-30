@@ -20,6 +20,13 @@ CONTROL_COMMANDS = {
 # Talk is intentionally deferred. Captured start/stop IOCTLs are 0x0350/0x0351.
 
 
+def _stream_is_ready(session) -> bool:
+    """Return whether the underlying transport's AV reader is running."""
+    transport = getattr(session, "_inner", session)
+    reader = getattr(transport, "_av_reader_thread", None)
+    return reader is not None and reader.is_alive()
+
+
 def execute_control(session, action: str) -> dict[str, object]:
     """Execute a validated one-shot command on the active camera session."""
     try:
@@ -83,8 +90,7 @@ def start_control_server(session):
             if not self._authorized():
                 self._write_json(401, {"ok": False, "error": "unauthorized"})
                 return
-            reader = getattr(session, "_av_reader_thread", None)
-            if reader is None or not reader.is_alive():
+            if not _stream_is_ready(session):
                 self._write_json(503, {"ok": False, "error": "stream not ready"})
                 return
             self._write_json(200, {"ok": True})

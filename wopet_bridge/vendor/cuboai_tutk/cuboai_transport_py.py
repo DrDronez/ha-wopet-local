@@ -179,6 +179,16 @@ class PureSession:
         parsed dict or None on timeout. Read-only; used by the benchmark/verbose telemetry."""
         return self._inner.get_during_stream(name, timeout=timeout)
 
+    def ioctl_during_stream(self, io_type: int, payload: bytes, *,
+                            resp_type=None, timeout: float = 2.5):
+        """Send an IOCTL through the active reader thread safely."""
+        return self._inner.ioctl_during_stream(
+            io_type,
+            bytes(payload),
+            resp_type=resp_type,
+            timeout=timeout,
+        )
+
     def start_video(self) -> None:
         """Begin AV streaming for the legacy single-frame API.
 

@@ -115,6 +115,34 @@ def test_control_executes_one_command_and_checks_camera_result() -> None:
     assert len(session.calls) == 1
 
 
+def test_control_health_uses_wrapped_transport_reader() -> None:
+    module_path = ROOT / "wopet_bridge/wopet/wopet_control.py"
+    spec = importlib.util.spec_from_file_location("wopet_control_health", module_path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    class Reader:
+        def is_alive(self):
+            return True
+
+    class Transport:
+        _av_reader_thread = Reader()
+
+    class Session:
+        _inner = Transport()
+
+    assert module._stream_is_ready(Session()) is True
+
+
+def test_pure_session_forwards_live_control_ioctl() -> None:
+    source = (
+        ROOT / "wopet_bridge/vendor/cuboai_tutk/cuboai_transport_py.py"
+    ).read_text(encoding="utf-8")
+    assert "def ioctl_during_stream(" in source
+    assert "return self._inner.ioctl_during_stream(" in source
+
+
 def test_wopet_wrapper_supervises_the_stream_with_bounded_backoff() -> None:
     """A failed camera handshake must not become a go2rtc respawn storm."""
     wrapper_path = ROOT / "wopet_bridge/wopet/wopet_stream.py"
