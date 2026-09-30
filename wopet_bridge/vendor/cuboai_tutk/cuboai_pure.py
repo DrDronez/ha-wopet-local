@@ -3372,12 +3372,17 @@ class TUTKDirectSession:
         last_vlog = 0.0                 # S62 verbose: last [stream] status line (rate-limit ~1/s)
         nframes = 0                     # S62 verbose: camera AV fragments seen this session
         video_frame_count = 0           # S71: completed VIDEO access units (gates the deferred 0x01FF)
+        wopet_audio_start = os.environ.get("CUBOAI_WOPET_AUDIOSTART") == "1"
         # S81: cadence-flag-aware init. If a stage is NOT deferred it was already sent
         # up front (_read_av_units), so mark it done here. t_mid (the 0x01FF timer base)
         # is stream-open when 0x0300 went up front, else set when 0x0300 fires below.
-        mid_ioctl_sent = not self._defer_stream_start
+        mid_ioctl_sent = not self._defer_stream_start and not wopet_audio_start
         t_mid = t_stream0 if mid_ioctl_sent else None
-        late_ioctl_sent = mid_ioctl_sent and not self._defer_video_start_late
+        late_ioctl_sent = (
+            True
+            if wopet_audio_start
+            else mid_ioctl_sent and not self._defer_video_start_late
+        )
 
         def maybe_ack():
             nonlocal last_ack, last_acked_D, last_acked_da, last_acked_edge, last_vlog
@@ -3678,7 +3683,7 @@ class TUTKDirectSession:
                 # when defer_stream_start is off (then 0x0300 went up front; mid_ioctl_
                 # sent is already True). When 0x01FF is NOT deferred but 0x0300 IS, the
                 # 0x01FF rides immediately after 0x0300 here (it must not precede it).
-                if self._defer_stream_start and not mid_ioctl_sent \
+                if (self._defer_stream_start or wopet_audio_start) and not mid_ioctl_sent \
                         and time.time() - t_stream0 >= self._MID_IOCTL_SECS:
                     self._send_video_start_mid()
                     mid_ioctl_sent = True
@@ -3915,7 +3920,12 @@ class TUTKDirectSession:
         # 0x01FF up front only makes sense when 0x0300 is also up front (it must not
         # precede stream-start), so it is gated on BOTH flags being off.
         start = list(self._VIDEO_START)                       # [0x00FF]
-        if not self._defer_stream_start:
+        wopet_audio_start = os.environ.get("CUBOAI_WOPET_AUDIOSTART") == "1"
+        if wopet_audio_start:
+            # Wopet opens video first, then accepts 0x0300 AUDIOSTART once that
+            # stream is established. The reader sends AUDIOSTART on its timer.
+            start.append(self._VIDEO_START_LATE)              # 0x01FF video start
+        elif not self._defer_stream_start:
             start.append(self._stream_start_mid_command())    # 0x0300 up front (fast path)
             if not self._defer_video_start_late:
                 start.append(self._VIDEO_START_LATE)          # 0x01FF up front too

@@ -19,7 +19,7 @@ def test_manifest_and_hacs_metadata_are_valid_json() -> None:
     hacs = json.loads((ROOT / "hacs.json").read_text(encoding="utf-8"))
     assert manifest["domain"] == "wopet_local"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.2.6"
+    assert manifest["version"] == "0.2.7"
     assert hacs["name"] == "Wopet Local"
 
 
@@ -38,7 +38,7 @@ def test_home_assistant_app_metadata_is_valid_yaml() -> None:
     )
     assert repository["name"] == "Wopet Local"
     assert app["slug"] == "wopet_local_bridge"
-    assert app["version"] == "0.2.6"
+    assert app["version"] == "0.2.7"
     assert app["arch"] == ["amd64"]
     assert app["host_network"] is True
     assert app["ingress_port"] == 1985

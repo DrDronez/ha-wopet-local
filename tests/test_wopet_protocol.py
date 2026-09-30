@@ -163,6 +163,13 @@ def test_wopet_audio_uses_captured_four_byte_start_payload(monkeypatch) -> None:
     ).read_text(encoding="utf-8")
     assert 'os.environ["CUBOAI_WOPET_AUDIOSTART"]' in wrapper
 
+    transport = MODULE_PATH.read_text(encoding="utf-8")
+    wopet_branch = transport.split("if wopet_audio_start:", 1)[-1].split(
+        "elif not self._defer_stream_start:", 1
+    )[0]
+    assert "start.append(self._VIDEO_START_LATE)" in wopet_branch
+    assert "_stream_start_mid_command()" not in wopet_branch
+
 
 def test_wopet_wrapper_supervises_the_stream_with_bounded_backoff() -> None:
     """A failed camera handshake must not become a go2rtc respawn storm."""
