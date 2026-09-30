@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import inspect
+import struct
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
@@ -54,10 +55,64 @@ def test_verbose_protocol_logging_uses_stderr() -> None:
     assert "file=sys.stderr" in source
 
 
-def test_wopet_wrapper_uses_go2rtc_native_hevc_input() -> None:
-    """Avoid gating Wopet video on the Cubo-specific MPEG-TS clean-IDR path."""
+def test_wopet_wrapper_defaults_to_native_hevc_and_can_enable_audio() -> None:
+    """Keep proven Annex-B video while allowing opt-in MPEG-TS AAC audio."""
     source = (ROOT / "wopet_bridge/wopet/wopet_stream.py").read_text(encoding="utf-8")
-    assert 'os.environ["CUBOAI_OUTPUT_FORMAT"] = "annexb"' in source
+    assert '"mpegts" if audio_enabled else "annexb"' in source
+    assert '"1" if audio_enabled else "0"' in source
+
+
+def test_wopet_control_commands_match_sanitized_capture() -> None:
+    """Pan and single-treat actions must retain their captured IOCTL layouts."""
+    module_path = ROOT / "wopet_bridge/wopet/wopet_control.py"
+    spec = importlib.util.spec_from_file_location("wopet_control", module_path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    left = module.CONTROL_COMMANDS["pan_left"]
+    right = module.CONTROL_COMMANDS["pan_right"]
+    treat = module.CONTROL_COMMANDS["dispense_treat"]
+
+    assert (left[0], struct.unpack("<III", left[1]), left[2]) == (
+        0x5047,
+        (1, 1, 10),
+        0x5048,
+    )
+    assert (right[0], struct.unpack("<III", right[1]), right[2]) == (
+        0x5047,
+        (1, 0, 10),
+        0x5048,
+    )
+    assert (treat[0], struct.unpack("<I", treat[1]), treat[2]) == (
+        0x5043,
+        (1,),
+        0x5044,
+    )
+    assert "talk" not in module.CONTROL_COMMANDS
+
+
+def test_control_executes_one_command_and_checks_camera_result() -> None:
+    """The treat action is one request, never an automatic repeat."""
+    module_path = ROOT / "wopet_bridge/wopet/wopet_control.py"
+    spec = importlib.util.spec_from_file_location("wopet_control_execute", module_path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    class Session:
+        calls = []
+
+        def ioctl_during_stream(self, io_type, payload, *, resp_type, timeout):
+            self.calls.append((io_type, payload, resp_type, timeout))
+            return resp_type, struct.pack("<II", 0, 1)
+
+    session = Session()
+    assert module.execute_control(session, "dispense_treat") == {
+        "ok": True,
+        "action": "dispense_treat",
+    }
+    assert len(session.calls) == 1
 
 
 def test_wopet_wrapper_supervises_the_stream_with_bounded_backoff() -> None:

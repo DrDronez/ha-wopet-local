@@ -56,8 +56,11 @@ import sys
 
 # ── Locate our modules ────────────────────────────────────────────────────
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__)))), 'wopet'))
 
 from cuboai_session import get_session   # auto: PureSession (no --lib) or TUTKSession
+from wopet_control import start_control_server
 
 
 def is_annexb_keyframe(au):
@@ -435,6 +438,8 @@ def main() -> None:
         print(f"Connection failed: {e}", file=sys.stderr)
         sys.exit(1)
 
+    control_server = start_control_server(sess)
+
     # ── verbose health (STDERR only — stdout stays the media pipe) ────────
     # Decoupled from the engine's own connect/stream trace (which prints to stdout): this
     # reads the read-only get_stats() snapshot on a daemon thread and writes only to stderr.
@@ -522,6 +527,9 @@ def main() -> None:
     except Exception as e:
         print(f"Stream error: {e}", file=sys.stderr)
     finally:
+        if control_server is not None:
+            control_server.shutdown()
+            control_server.server_close()
         if _v_stop is not None:
             _v_stop.set()
         if _etsf is not None:        # M3: close the gated emit-trace file (was leaked for process life)

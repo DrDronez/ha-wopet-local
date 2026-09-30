@@ -19,7 +19,7 @@ def test_manifest_and_hacs_metadata_are_valid_json() -> None:
     hacs = json.loads((ROOT / "hacs.json").read_text(encoding="utf-8"))
     assert manifest["domain"] == "wopet_local"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.1.0"
+    assert manifest["version"] == "0.2.0"
     assert hacs["name"] == "Wopet Local"
 
 
@@ -42,7 +42,10 @@ def test_home_assistant_app_metadata_is_valid_yaml() -> None:
     assert app["host_network"] is True
     assert app["ingress_port"] == 1985
     assert app["options"]["rtsp_port"] == 8554
+    assert app["options"]["control_port"] == 1986
+    assert app["options"]["enable_audio"] is False
     assert app["schema"]["rtsp_port"] == "port"
+    assert app["schema"]["control_token"] == "password"
     assert "configuration" in translations
 
 

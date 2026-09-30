@@ -31,14 +31,24 @@ to HACS's default catalog. Add it as a custom repository using the steps above.
    - **Stream name:** `wopet` unless changed in the bridge configuration;
    - **Camera name:** the friendly name to display in Home Assistant.
 
+4. Open the Wopet Local integration's **Configure** dialog and enter:
+
+   - **Control port:** the bridge control port (`1986` by default);
+   - **Control token:** the same private random value saved in the bridge app.
+
+The integration creates momentary Pan Left, Pan Right, and Dispense Treat
+button entities. Each button press sends one action. Treat dispensing does not
+repeat automatically.
+
 The setup flow checks that the RTSP port is reachable before creating the
 camera entity. It never asks for or stores camera credentials.
 
 ## Dashboard
 
-After setup, add the created `camera` entity to a Picture Entity or Picture
-Glance card. Home Assistant consumes the RTSP URL through its stream
-integration.
+After setup, add the created `camera` entity and any desired control buttons to
+the dashboard. Home Assistant consumes the RTSP URL through its stream
+integration. If experimental listen audio is enabled in the bridge, unmute the
+camera player to hear it.
 
 ## Removing the project
 

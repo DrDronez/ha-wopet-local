@@ -8,6 +8,7 @@ device_password="$(bashio::config 'device_password')"
 stream_name="$(bashio::config 'stream_name')"
 rtsp_port="$(bashio::config 'rtsp_port')"
 log_level="$(bashio::config 'log_level')"
+control_port="$(bashio::config 'control_port')"
 
 go2rtc_log_level="info"
 if [[ "${log_level}" == "debug" ]]; then
@@ -42,4 +43,5 @@ EOF
 export WOPET_OPTIONS_FILE=/data/options.json
 bashio::log.info "Starting local bridge for stream '${stream_name}'"
 bashio::log.info "RTSP is available on port ${rtsp_port}; credentials are intentionally omitted from logs"
+bashio::log.info "Authenticated controls are available on port ${control_port}"
 exec /usr/local/bin/go2rtc -config /data/go2rtc.yaml

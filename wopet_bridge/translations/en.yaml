@@ -17,6 +17,15 @@ configuration:
   rtsp_port:
     name: RTSP port
     description: Host port for the RTSP stream. Choose an unused TCP port.
+  control_port:
+    name: Control port
+    description: Host port used by the authenticated Home Assistant controls.
+  control_token:
+    name: Control token
+    description: A private random token shared only with the Wopet Local integration.
+  enable_audio:
+    name: Include camera audio
+    description: Experimental AAC audio in the Home Assistant stream.
   log_level:
     name: Log level
     description: Use debug only while troubleshooting; network details may appear.

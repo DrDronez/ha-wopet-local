@@ -70,9 +70,12 @@ def main() -> None:
     os.environ["CUBOAI_UID"] = _required_string(options, "device_uid")
     os.environ["CUBOAI_ACCOUNT"] = _required_string(options, "device_username")
     os.environ["CUBOAI_PASSWORD"] = _required_string(options, "device_password")
-    os.environ["CUBOAI_MUX_AUDIO"] = "0"
-    os.environ["CUBOAI_OUTPUT_FORMAT"] = "annexb"
+    audio_enabled = bool(options.get("enable_audio", False))
+    os.environ["CUBOAI_MUX_AUDIO"] = "1" if audio_enabled else "0"
+    os.environ["CUBOAI_OUTPUT_FORMAT"] = "mpegts" if audio_enabled else "annexb"
     os.environ["CUBOAI_WOPET_X2043"] = "1"
+    os.environ["WOPET_CONTROL_PORT"] = str(options.get("control_port", 1986))
+    os.environ["WOPET_CONTROL_TOKEN"] = str(options.get("control_token", "")).strip()
     os.environ["CUBOAI_VERBOSE"] = (
         "1" if str(options.get("log_level", "info")).lower() == "debug" else "0"
     )

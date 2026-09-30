@@ -8,10 +8,14 @@ from typing import Any
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_HOST, CONF_NAME
+from homeassistant.helpers import selector
 
 from .const import (
+    CONF_CONTROL_PORT,
+    CONF_CONTROL_TOKEN,
     CONF_RTSP_PORT,
     CONF_STREAM_NAME,
+    DEFAULT_CONTROL_PORT,
     DEFAULT_RTSP_PORT,
     DEFAULT_STREAM_NAME,
     DOMAIN,
@@ -33,6 +37,11 @@ class WopetLocalConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a Wopet Local config flow."""
 
     VERSION = 1
+
+    @staticmethod
+    def async_get_options_flow(config_entry: config_entries.ConfigEntry):
+        """Return the control options flow for an existing camera entry."""
+        return WopetLocalOptionsFlow(config_entry)
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -64,3 +73,33 @@ class WopetLocalConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             }
         )
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
+
+
+class WopetLocalOptionsFlow(config_entries.OptionsFlow):
+    """Configure the authenticated bridge controls."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        self._config_entry = config_entry
+
+    async def async_step_init(self, user_input=None):
+        """Collect control port and shared token."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_CONTROL_PORT,
+                    default=self._config_entry.options.get(
+                        CONF_CONTROL_PORT, DEFAULT_CONTROL_PORT
+                    ),
+                ): vol.All(vol.Coerce(int), vol.Range(min=1, max=65535)),
+                vol.Required(
+                    CONF_CONTROL_TOKEN,
+                    default=self._config_entry.options.get(CONF_CONTROL_TOKEN, ""),
+                ): selector.TextSelector(
+                    selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
+                ),
+            }
+        )
+        return self.async_show_form(step_id="init", data_schema=schema)

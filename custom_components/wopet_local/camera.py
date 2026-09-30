@@ -32,6 +32,12 @@ class WopetLocalCamera(Camera):
         super().__init__()
         self._attr_name = entry.data[CONF_NAME]
         self._attr_unique_id = entry.unique_id or entry.entry_id
+        self._attr_device_info = {
+            "identifiers": {("wopet_local", entry.unique_id or entry.entry_id)},
+            "name": entry.title,
+            "manufacturer": "Wopet",
+            "model": "Guardian Plus D100",
+        }
         self._host = entry.data[CONF_HOST]
         self._port = entry.data[CONF_RTSP_PORT]
         self._stream_name = entry.data[CONF_STREAM_NAME]

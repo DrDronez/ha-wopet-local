@@ -18,6 +18,24 @@
     "abort": {
       "already_configured": "This bridge stream is already configured."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Wopet bridge controls",
+        "description": "Use the same private control token configured in the Wopet Local Bridge app.",
+        "data": {
+          "control_port": "Control port",
+          "control_token": "Control token"
+        }
+      }
+    }
+  },
+  "entity": {
+    "button": {
+      "pan_left": {"name": "Pan left"},
+      "pan_right": {"name": "Pan right"},
+      "dispense_treat": {"name": "Dispense treat"}
+    }
   }
 }
-

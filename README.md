@@ -52,6 +52,8 @@ it as a custom repository.
 4. Open **Settings → Devices & services → Add integration → Wopet Local**.
 5. Enter the hostname or IP address of your Home Assistant host, the RTSP port
    selected in the bridge configuration (`8554` by default), and stream name `wopet`.
+6. Open the integration's **Configure** dialog and enter the same control port
+   and private control token used in the bridge app.
 
 See [HACS setup](docs/HACS_SETUP.md) for screenshots-free, step-by-step details.
 
@@ -63,16 +65,18 @@ See [HACS setup](docs/HACS_SETUP.md) for screenshots-free, step-by-step details.
 | HEVC/H.265 video | Validated experimentally |
 | RTSP restream | Validated on firmware `40.23.6.5` |
 | Home Assistant camera entity | Validated live view |
-| Audio | Planned |
-| PTZ | Planned |
+| Listen audio | Experimental, opt-in |
+| Pan left/right | Captured; momentary HA buttons |
 | Quality selection | Planned |
-| Two-way talk | Planned |
-| Treat dispensing | Deliberately deferred |
+| Two-way talk | Protocol retained; deliberately deferred |
+| Treat dispensing | Captured; momentary single-treat HA button |
 
 ## Security
 
 - Never commit app options, PCAP files, credentials, real device identifiers,
   or private IP addresses.
+- Treat the control token like a password and do not expose the control port to
+  the internet.
 - Diagnostics and bug reports must be scrubbed before publication.
 - The Wopet mobile app has been observed using plain HTTP for account bootstrap
   traffic. This project therefore starts with local device credentials rather

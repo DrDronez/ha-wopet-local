@@ -1717,7 +1717,7 @@ def build_talk_audio(R, channel, seq, relseq, frag, msgidx, au):
 # ── read-only stats snapshot (the single source for --benchmark and verbose) ────
 
 class _StreamGet:
-    """A mid-stream GET request handed to the reader thread.
+    """A mid-stream IOCTL request handed to the reader thread.
 
     While streaming, `_av_reader` is the SOLE socket sender (a second sender would race
     its seq/relseq/frmno and double-drain recvfrom — see _av_reader). So a thread that
@@ -1727,10 +1727,10 @@ class _StreamGet:
     """
     __slots__ = ('io_type', 'payload', 'resp_type', 'sent', 'last_tx', 'done', 'result')
 
-    def __init__(self, io_type, payload):
+    def __init__(self, io_type, payload, resp_type=None):
         self.io_type = io_type
         self.payload = payload
-        self.resp_type = io_type | 1          # GET req (even) -> resp = req | 1
+        self.resp_type = io_type | 1 if resp_type is None else resp_type
         self.sent = False
         self.last_tx = 0.0
         self.done = threading.Event()
@@ -3206,6 +3206,28 @@ class TUTKDirectSession:
                 return result
             finally:
                 self._get_inject = None                 # retire the slot
+
+    def ioctl_during_stream(self, io_type, payload, *, resp_type=None, timeout=2.5):
+        """Send one IOCTL safely through the active stream reader.
+
+        The AV reader owns the socket while streaming. This method queues a command
+        on that reader so Home Assistant controls cannot race packet sequence state
+        or drain camera responses from a second thread. ``resp_type`` is explicit for
+        Wopet action commands whose odd request IDs use the following even ID as the
+        response (for example 0x5047 -> 0x5048).
+        """
+        th = self._av_reader_thread
+        if th is None or not th.is_alive():
+            raise RuntimeError("camera stream is not active")
+        with self._inject_lock:
+            gi = _StreamGet(io_type, payload, resp_type=resp_type)
+            self._get_inject = gi
+            try:
+                if not gi.done.wait(timeout):
+                    raise TimeoutError(f"no response to mid-stream IOCTL 0x{io_type:04x}")
+                return gi.resp_type, gi.result
+            finally:
+                self._get_inject = None
 
     # ── video / snapshot ────────────────────────────────────────────────────
     # IOTYPEs (from cuboai_messages): SETRESOLUTION=0x00FF, AUDIOSTART=0x0300,
