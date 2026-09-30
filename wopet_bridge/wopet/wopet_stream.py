@@ -73,6 +73,11 @@ def main() -> None:
     audio_enabled = bool(options.get("enable_audio", False))
     os.environ["CUBOAI_MUX_AUDIO"] = "1" if audio_enabled else "0"
     os.environ["CUBOAI_OUTPUT_FORMAT"] = "mpegts" if audio_enabled else "annexb"
+    # Firmware 40.23.6.5 does not reliably mark a complete IDR at the assembled
+    # access-unit boundary. Do not hold back the MPEG-TS PAT/PMT while waiting
+    # for that hint; downstream demuxers can lock immediately and the decoder
+    # will begin displaying at the next usable keyframe.
+    os.environ["CUBOAI_CLEAN_GOP"] = "0" if audio_enabled else "1"
     os.environ["CUBOAI_WOPET_X2043"] = "1"
     os.environ["WOPET_CONTROL_PORT"] = str(options.get("control_port", 1986))
     os.environ["WOPET_CONTROL_TOKEN"] = str(options.get("control_token", "")).strip()
