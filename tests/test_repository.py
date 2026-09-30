@@ -94,3 +94,22 @@ def test_camera_uses_rtsp_stream_for_stills() -> None:
         and node.value.value is True
         for node in ast.walk(stream_for_stills)
     )
+
+
+def test_options_changes_reload_the_integration() -> None:
+    """Ensure newly saved control credentials take effect immediately."""
+    source = (ROOT / "custom_components/wopet_local/__init__.py").read_text(
+        encoding="utf-8"
+    )
+    tree = ast.parse(source)
+    setup = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.AsyncFunctionDef) and node.name == "async_setup_entry"
+    )
+    assert any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "add_update_listener"
+        for node in ast.walk(setup)
+    )
