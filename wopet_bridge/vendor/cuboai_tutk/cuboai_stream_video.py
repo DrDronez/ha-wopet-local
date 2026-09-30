@@ -337,7 +337,10 @@ def mux_timed_stream(frames_timed, emit, *, clean_gop=True, mux_audio=False, log
                 synced = False; _cg_drop += 1
                 continue
             if not synced:
-                if fi.get('is_keyframe'):             # clean IDR → resume a fresh decodable GOP
+                # Some Wopet firmware (including 40.23.6.5) leaves the FRAMEINFO
+                # keyframe flag clear even though the HEVC access unit contains an IDR.
+                # Trust either signal, matching the proven Annex-B output path below.
+                if fi.get('is_keyframe') or _nal_kf(data):
                     synced = True
                     log(f"[clean_gop] resync at IDR (dropped {_cg_drop} AUs)")
                 else:
