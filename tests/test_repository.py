@@ -19,7 +19,7 @@ def test_manifest_and_hacs_metadata_are_valid_json() -> None:
     hacs = json.loads((ROOT / "hacs.json").read_text(encoding="utf-8"))
     assert manifest["domain"] == "wopet_local"
     assert manifest["config_flow"] is True
-    assert manifest["version"] == "0.2.8"
+    assert manifest["version"] == "0.2.9"
     assert hacs["name"] == "Wopet Local"
 
 
@@ -38,7 +38,7 @@ def test_home_assistant_app_metadata_is_valid_yaml() -> None:
     )
     assert repository["name"] == "Wopet Local"
     assert app["slug"] == "wopet_local_bridge"
-    assert app["version"] == "0.2.8"
+    assert app["version"] == "0.2.9"
     assert app["arch"] == ["amd64"]
     assert app["host_network"] is True
     assert app["ingress_port"] == 1985
@@ -54,6 +54,19 @@ def test_audio_stream_does_not_wait_for_unreliable_firmware_keyframe_hints() -> 
     """Publish MPEG-TS discovery tables immediately on firmware 40.23.6.5."""
     source = (ROOT / "wopet_bridge/wopet/wopet_stream.py").read_text(encoding="utf-8")
     assert 'os.environ["CUBOAI_CLEAN_GOP"] = "0" if audio_enabled else "1"' in source
+
+
+def test_go2rtc_build_is_pinned_and_discovers_pcma_mpegts() -> None:
+    """Keep the public build reproducible and preserve Wopet listen audio."""
+    dockerfile = (ROOT / "wopet_bridge/Dockerfile").read_text(encoding="utf-8")
+    patch = (ROOT / "wopet_bridge/patches/go2rtc-pcma-mpegts.patch").read_text(
+        encoding="utf-8"
+    )
+    assert "GO2RTC_VERSION=v1.9.14" in dockerfile
+    assert "GO2RTC_COMMIT=b5948cfb25404cc5cb37b166ecaa2dca20b11d4b" in dockerfile
+    assert "git apply --check /tmp/go2rtc-pcma-mpegts.patch" in dockerfile
+    assert "case StreamTypePCMATapo:" in patch
+    assert "Name:      core.CodecPCMA" in patch
 
 
 def test_camera_initializes_home_assistant_base_class() -> None:

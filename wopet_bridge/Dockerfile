@@ -1,3 +1,22 @@
+FROM golang:1.24-alpine AS go2rtc-builder
+
+ARG GO2RTC_VERSION=v1.9.14
+ARG GO2RTC_COMMIT=b5948cfb25404cc5cb37b166ecaa2dca20b11d4b
+
+RUN apk add --no-cache git \
+    && git clone --filter=blob:none --no-checkout https://github.com/AlexxIT/go2rtc.git /src/go2rtc \
+    && cd /src/go2rtc \
+    && git checkout "${GO2RTC_COMMIT}" \
+    && test "$(git describe --tags --exact-match)" = "${GO2RTC_VERSION}"
+
+COPY patches/go2rtc-pcma-mpegts.patch /tmp/go2rtc-pcma-mpegts.patch
+
+RUN cd /src/go2rtc \
+    && git apply --check /tmp/go2rtc-pcma-mpegts.patch \
+    && git apply /tmp/go2rtc-pcma-mpegts.patch \
+    && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+        -trimpath -ldflags="-s -w" -o /out/go2rtc .
+
 FROM ghcr.io/home-assistant/amd64-base-python:3.13-alpine3.22
 
 ARG BUILD_VERSION=dev
@@ -10,12 +29,9 @@ LABEL \
     io.hass.type="addon" \
     io.hass.version="${BUILD_VERSION}"
 
-RUN wget -q -T 30 -t 5 \
-        -O /usr/local/bin/go2rtc \
-        https://github.com/AlexxIT/go2rtc/releases/download/v1.9.14/go2rtc_linux_amd64 \
-    && echo "32d616af226bd731678ffde328b94cfb94e30339bfefc469cfb76323144615a6  /usr/local/bin/go2rtc" \
-        | sha256sum -c - \
-    && chmod 0755 /usr/local/bin/go2rtc
+COPY --from=go2rtc-builder /out/go2rtc /usr/local/bin/go2rtc
+
+RUN chmod 0755 /usr/local/bin/go2rtc
 
 COPY rootfs /
 COPY wopet /app/wopet

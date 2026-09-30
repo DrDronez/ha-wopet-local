@@ -21,9 +21,11 @@ Wopet Local integration's Configure dialog. The integration uses the
 authenticated control port for the momentary Pan Left, Pan Right, and Dispense
 Treat buttons. A treat press sends exactly one dispense request.
 
-Enable **Include camera audio** to publish the camera's AAC listen track with
-the video. This changes the bridge pipe from raw HEVC to MPEG-TS and remains
-experimental; turn it back off if a client cannot play the combined stream.
+Enable **Include camera audio** to publish the camera's 8 kHz listen track as
+G.711 A-law (PCMA) with the video. This changes the bridge pipe from raw HEVC
+to MPEG-TS and remains experimental; turn it back off if a client cannot play
+the combined stream. The image builds the tagged go2rtc 1.9.14 source with the
+small PCMA MPEG-TS discovery fix that was subsequently accepted upstream.
 
 The app's **Open Web UI** button opens the protected go2rtc diagnostics page.
 

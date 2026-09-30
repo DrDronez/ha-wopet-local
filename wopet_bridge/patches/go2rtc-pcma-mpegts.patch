@@ -1,0 +1,32 @@
+diff --git a/pkg/mpegts/producer.go b/pkg/mpegts/producer.go
+index 2c72d8a..14417bf 100644
+--- a/pkg/mpegts/producer.go
++++ b/pkg/mpegts/producer.go
+@@ -91,7 +91,7 @@ func (c *Producer) probe() error {
+ 		case StreamTypeMetadata:
+ 			for _, streamType := range pkt.Payload {
+ 				switch streamType {
+-				case StreamTypeH264, StreamTypeH265, StreamTypeAAC, StreamTypePrivateOPUS:
++				case StreamTypeH264, StreamTypeH265, StreamTypeAAC, StreamTypePrivateOPUS, StreamTypePCMATapo:
+ 					waitType = append(waitType, streamType)
+ 				}
+ 			}
+@@ -135,6 +135,18 @@ func (c *Producer) probe() error {
+ 				Codecs:    []*core.Codec{codec},
+ 			}
+ 			c.Medias = append(c.Medias, media)
++
++		case StreamTypePCMATapo:
++			codec := &core.Codec{
++				Name:      core.CodecPCMA,
++				ClockRate: 8000,
++			}
++			media := &core.Media{
++				Kind:      core.KindAudio,
++				Direction: core.DirectionRecvonly,
++				Codecs:    []*core.Codec{codec},
++			}
++			c.Medias = append(c.Medias, media)
+ 		}
+ 	}
+ 
