@@ -10,9 +10,10 @@ LABEL \
     io.hass.type="addon" \
     io.hass.version="${BUILD_VERSION}"
 
-ADD https://github.com/AlexxIT/go2rtc/releases/download/v1.9.14/go2rtc_linux_amd64 /usr/local/bin/go2rtc
-
-RUN echo "32d616af226bd731678ffde328b94cfb94e30339bfefc469cfb76323144615a6  /usr/local/bin/go2rtc" \
+RUN wget -q -T 30 -t 5 \
+        -O /usr/local/bin/go2rtc \
+        https://github.com/AlexxIT/go2rtc/releases/download/v1.9.14/go2rtc_linux_amd64 \
+    && echo "32d616af226bd731678ffde328b94cfb94e30339bfefc469cfb76323144615a6  /usr/local/bin/go2rtc" \
         | sha256sum -c - \
     && chmod 0755 /usr/local/bin/go2rtc
 
